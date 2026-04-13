@@ -1,0 +1,19 @@
+PILIH Produkt-Konzept  
+Hier das Konzept für meine KI Führerschein App "🔥 PILIH 🔥" (Prompt it like its hot):
+
+Ziel: Usern, die wenig AI Literacy haben, den Umgang mit KI schulen. Ein interaktives, praxisnahes Training in Prompt Engineering, Context Engineering, “Fantasie” entwickeln was alles mit AI möglich ist und welche Use Cases es im Job des Users alles gibt; allgemeine Kompetenz im Umgang mit LLMs aufbauen
+
+\- Setup/Onboarding: Kurzes Interview – Was tust du, was ist dein Job? Du (user) gibst die Firma, deine Abteilung und eine Beschreibung deines Alltags ein und beantwortest eine Reihe Fragen zu deinem Wissens- und Skillstand (wie oft nutzt du welches LLM wofür etc.), favorisiert per Speech To Text  
+\- Ein LLM (ein Mensch guckt später aber drüber) entwickelt 3 Sets je 21 Custom AI Prompting Challenges, die gleichzeitig das Prompten "handwerklich" verbessern als auch die Breite mögliche LLM Anwendungsfälle erlebbar machen (Effekt beim User: "Wow, daran hatte ich ja noch gar nicht gedacht, die KI dafür einzusetzen\!")  
+\- 21 Tage, jeden Tag eine Challenge. Erst werden dem User jeden Tag ein individueller Vorschlag von 3 zum Job und aktuellen Projekten passenden Challenges angezeigt. Der User wählt eine aus, dann erscheint eine Chat Conversation. Sieht aus wie ChatGPT / Claude und Co. Dort wird von dem LLM ein Widget generiert, das die Tages-Challenges detailreich aber übersichtlich erklärt und Prompting-Tipps gibt.    
+ und kann dann durch den nach der Challenge Beschreibung erscheindes Chat-Interface deinen Prompt direkt in PILIH eingeben und die Antwort des LLMs direkt sehen. Eine zweite KI gibt dir nach ein paar versuchen immer wieder mit einem Pop-up   
+\- Beispiel-Challenge für einen eCommerce Mitarbeiter: "Lasse die KI 3 Texte aus eurem Onlineshop SEO optimieren", oder "Beauftrage Claude & GPT eine Deep Research über euer Unternehmen zu machen. Was lernst du über eure Brand & Außenwirkung?" oder "Sende Gemini 2.5 pro Screenshots von eurem Webauftritt und lasse sie kritische Verbesserungsvorschläge machen. Die KI soll sie nach Impact sortieren und diesen begründen".  
+\- Zu jeder Challenge gibt EINE ZWEITE KI (LLM as a judge quasi; Eigener Kontext) Instant Feedback zum Prompt und wie er optimiert werden könnte  
+\- Nach jeder Challenge Einreichung wird der User gefragt, "Wie schwierig fandest du die Challenge?" mit Antworten von "zu leicht" über "genau richtig" bis "zu schwer". Entsprechend dem Rating & der Performance passen wir die Schwierigkeit der nächsten Challenge an.  
+\- Optional aber empfohlen: Jede Woche kann ein Weekly Meeting der gesamten Kohorte mit einem genAI & Prompting Expert gebucht werden, in dem der Expert Feedback gibt, Best Practices teilt und die Kohorte sich austauschen kann zu Learnings (1h/Woche)  
+\- Pricing: 399€ netto pro Teilnehmer inkl. Lizenz am Ende; 499€ wenn mit Weekly Meeting, 999€ inkl. 1on1 Coaching Meeting jede Woche (die Option mit hoher Marge soll primär als Preis-Anker dienen)  
+\- Am Ende der 21 Tage gibt es noch sowas wie einen Abschluss Test: 3 genAI Use Cases aus dem Alltag des Users, die der User selbstständig gefunden hat und erprobt hat, müssen eingereicht werden. Wenn Qualität ausreichend \-\> Führerschein Download Button und Konfetti  
+Business Model  
+\- Wir vertreiben das erst als Add-on zu unseren On-Site Prompting Schools bis das Produkt richtig gut funktioniert  
+\- Danach drehen wir das Modell um: Wir bewerben online die App (b2b mit Zielgruppe HR & C-Level als Einkäufer für ihre Belegschaft, b2c für Leute die Lust auf die Lizenz haben als Beleg für ihre Prompting Skills) und vertreiben über diesen Traffic dann unsere On-Site Prompting Schools als Cross-Selling  
+\- Danach ergänzen wir einen White-Label Ansatz über die IHKs oder Wirtschaftsentwicklungen / Arbeitsämter oÄ, die das in ihrem CI-Look für Unternehmen anbieten können und dafür zB 33% der Userfee übernehmen  
