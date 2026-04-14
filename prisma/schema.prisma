@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  PARTICIPANT
+  COMPANY_ADMIN
+  SUPER_ADMIN
+}
+
+enum Tier {
+  BASE
+  PRO
+  PREMIUM
+}
+
+enum AISkill {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum ChallengeStatus {
+  UPCOMING
+  AVAILABLE
+  COMPLETED
+  SKIPPED
+}
+
+enum SessionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum DifficultyRating {
+  TOO_EASY
+  JUST_RIGHT
+  TOO_HARD
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BookingType {
+  GROUP_MEETING
+  ONE_ON_ONE
+}
+
+enum BookingStatus {
+  UPCOMING
+  COMPLETED
+  CANCELLED
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  domain    String?
+  users     User[]
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id          String             @id @default(cuid())
+  clerkId     String             @unique
+  email       String
+  name        String
+  role        Role               @default(PARTICIPANT)
+  tier        Tier               @default(BASE)
+  companyId   String?
+  company     Company?           @relation(fields: [companyId], references: [id])
+  onboarding  OnboardingProfile?
+  challenges  Challenge[]
+  sessions    DailySession[]
+  attempts    PromptAttempt[]
+  submission  FinalSubmission?
+  certificate Certificate?
+  bookings    Booking[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+model OnboardingProfile {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id])
+  companyName      String
+  department       String
+  jobTitle         String
+  dailyDescription String
+  aiSkillLevel     AISkill
+  aiToolsUsed      String[]
+  aiFrequency      String
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+}
+
+model Challenge {
+  id                String          @id @default(cuid())
+  userId            String
+  user              User            @relation(fields: [userId], references: [id])
+  dayNumber         Int
+  title             String
+  description       String
+  promptingTips     String
+  category          String
+  difficulty        Int
+  currentDifficulty Int
+  status            ChallengeStatus @default(UPCOMING)
+  sessions          DailySession[]
+  createdAt         DateTime        @default(now())
+}
+
+model DailySession {
+  id                  String            @id @default(cuid())
+  userId              String
+  user                User              @relation(fields: [userId], references: [id])
+  dayNumber           Int
+  date                DateTime
+  status              SessionStatus     @default(PENDING)
+  selectedChallengeId String?
+  selectedChallenge   Challenge?        @relation(fields: [selectedChallengeId], references: [id])
+  difficultyRating    DifficultyRating?
+  attempts            PromptAttempt[]
+  completedAt         DateTime?
+  createdAt           DateTime          @default(now())
+}
+
+model PromptAttempt {
+  id            String       @id @default(cuid())
+  sessionId     String
+  session       DailySession @relation(fields: [sessionId], references: [id])
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  userPrompt    String
+  llmResponse   String
+  judgeFeedback String
+  judgeScore    Int
+  improvements  String[]
+  attemptNumber Int
+  createdAt     DateTime     @default(now())
+}
+
+model FinalSubmission {
+  id          String           @id @default(cuid())
+  userId      String           @unique
+  user        User             @relation(fields: [userId], references: [id])
+  useCase1    Json
+  useCase2    Json
+  useCase3    Json
+  llmReview   String?
+  status      SubmissionStatus @default(PENDING)
+  submittedAt DateTime         @default(now())
+  reviewedAt  DateTime?
+}
+
+model Certificate {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id])
+  pdfUrl           String
+  badgeUrl         String
+  linkedInShareUrl String
+  issuedAt         DateTime @default(now())
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  type        BookingType
+  scheduledAt DateTime
+  meetingUrl  String
+  status      BookingStatus @default(UPCOMING)
+  createdAt   DateTime      @default(now())
+}
