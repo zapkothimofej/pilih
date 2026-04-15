@@ -53,8 +53,21 @@ export default function ChallengeWidget({
                 <p className="text-sm text-zinc-300 leading-relaxed">{description}</p>
               </div>
               <div>
-                <div className="text-xs font-semibold text-orange-400 uppercase tracking-wide mb-1.5">💡 Prompting-Tipps</div>
-                <p className="text-sm text-zinc-400 leading-relaxed">{promptingTips}</p>
+                <div className="text-xs font-semibold text-orange-400 uppercase tracking-wide mb-2">Prompting-Tipps</div>
+                <ul className="space-y-2">
+                  {promptingTips
+                    .split(/(?=\d+\.\s)/)
+                    .map(s => s.trim())
+                    .filter(Boolean)
+                    .map((tip, i) => (
+                      <li key={i} className="flex gap-2.5 text-sm text-zinc-400 leading-relaxed">
+                        <span className="text-orange-500 font-semibold shrink-0 mt-px">
+                          {i + 1}.
+                        </span>
+                        <span>{tip.replace(/^\d+\.\s*/, '')}</span>
+                      </li>
+                    ))}
+                </ul>
               </div>
             </div>
           </motion.div>

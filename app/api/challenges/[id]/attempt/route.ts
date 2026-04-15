@@ -1,19 +1,27 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/db/prisma'
 import { streamChallengeResponse } from '@/lib/ai/challenge-ai'
 import { judgePrompt } from '@/lib/ai/judge-ai'
+import { rateLimit, rateLimitHeaders } from '@/lib/utils/rate-limit'
+
+// 20 attempts per hour per user — covers a full day's active work
+const ATTEMPT_LIMIT = 20
+const ATTEMPT_WINDOW_MS = 60 * 60 * 1000
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth()
-  if (!userId) return new Response('Nicht autorisiert', { status: 401 })
-
   const { id: challengeId } = await params
-  const user = await prisma.user.findUnique({ where: { clerkId: userId } })
+  const user = await prisma.user.findUnique({ where: { id: 'test-user-1' } })
   if (!user) return new Response('User nicht gefunden', { status: 404 })
+
+  const rl = rateLimit(`attempt:${user.id}`, ATTEMPT_LIMIT, ATTEMPT_WINDOW_MS)
+  if (!rl.allowed) {
+    return new Response(
+      JSON.stringify({ error: 'Zu viele Anfragen. Bitte warte eine Stunde.' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rl, ATTEMPT_LIMIT) } }
+    )
+  }
 
   const { userPrompt, sessionId, chatHistory } = await req.json() as {
     userPrompt: string

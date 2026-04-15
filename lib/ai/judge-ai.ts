@@ -44,5 +44,8 @@ Bewerte diesen Prompt und gib JSON zurück:
   const content = message.content[0]
   if (content.type !== 'text') throw new Error('Unerwarteter Response-Typ')
 
-  return JSON.parse(content.text) as JudgeFeedback
+  const raw = content.text.trim()
+  const jsonText = raw.startsWith('```') ? raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '') : raw
+
+  return JSON.parse(jsonText) as JudgeFeedback
 }

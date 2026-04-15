@@ -69,7 +69,11 @@ Gib ein JSON-Array zurück mit exakt diesem Format:
   const content = message.content[0]
   if (content.type !== 'text') throw new Error('Unerwarteter Response-Typ von Claude')
 
-  return JSON.parse(content.text) as GeneratedChallenge[]
+  // Strip optional markdown code fences (```json ... ``` or ``` ... ```)
+  const raw = content.text.trim()
+  const jsonText = raw.startsWith('```') ? raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '') : raw
+
+  return JSON.parse(jsonText) as GeneratedChallenge[]
 }
 
 export async function* streamChallengeResponse(
@@ -80,11 +84,9 @@ export async function* streamChallengeResponse(
   const stream = client.messages.stream({
     model: 'claude-sonnet-4-6',
     max_tokens: 2000,
-    system: `Du bist ein hilfreicher KI-Assistent. Der User führt gerade eine Prompt-Engineering-Challenge durch.
-Challenge: ${challengeDescription}
-
-Antworte auf den Prompt des Users so, als wärst du der KI-Assistent den er beauftragt.
-Antworte auf Deutsch, außer der User fragt auf Englisch.`,
+    system: `Du bist ein hilfreicher KI-Assistent. Führe den Auftrag des Users präzise aus.
+Keine Emojis. Kein Feedback, keine Bewertungen, keine Kommentare zu Formulierungen des Users.
+Antworte nur auf Deutsch, außer der User schreibt explizit auf Englisch.`,
     messages: [
       ...chatHistory,
       { role: 'user', content: userPrompt },

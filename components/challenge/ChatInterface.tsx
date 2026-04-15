@@ -12,17 +12,23 @@ type DiffRating = 'TOO_EASY' | 'JUST_RIGHT' | 'TOO_HARD'
 interface ChatInterfaceProps {
   challengeId: string
   sessionId: string
+  previousAttempts: Array<{ userPrompt: string; llmResponse: string }>
   onComplete: (rating: DiffRating, xp: number) => void
 }
 
-export default function ChatInterface({ challengeId, sessionId, onComplete }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([])
+export default function ChatInterface({ challengeId, sessionId, previousAttempts, onComplete }: ChatInterfaceProps) {
+  const [messages, setMessages] = useState<Message[]>(() =>
+    previousAttempts.flatMap(a => [
+      { role: 'user' as const, content: a.userPrompt },
+      { role: 'assistant' as const, content: a.llmResponse },
+    ])
+  )
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [judgeFeedback, setJudgeFeedback] = useState<JudgeFeedback | null>(null)
   const [showRating, setShowRating] = useState(false)
   const [ratingLoading, setRatingLoading] = useState(false)
-  const [attempts, setAttempts] = useState(0)
+  const [attempts, setAttempts] = useState(previousAttempts.length)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 

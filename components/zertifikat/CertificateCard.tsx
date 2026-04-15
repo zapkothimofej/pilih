@@ -109,12 +109,13 @@ export default function CertificateCard({ userName, completedAt, avgScore, linke
 
       {/* Aktionen */}
       <div className="grid grid-cols-2 gap-3">
-        <button
-          onClick={() => window.print()}
-          className="py-3 bg-[#111] border border-[#333] hover:border-[#444] text-zinc-300 hover:text-white rounded-xl text-sm font-medium transition-colors"
+        <a
+          href="/api/zertifikat/pdf"
+          download
+          className="py-3 bg-[#111] border border-[#333] hover:border-[#444] text-zinc-300 hover:text-white rounded-xl text-sm font-medium transition-colors text-center"
         >
-          📄 PDF drucken
-        </button>
+          📄 PDF herunterladen
+        </a>
         <a
           href={linkedInShareUrl}
           target="_blank"

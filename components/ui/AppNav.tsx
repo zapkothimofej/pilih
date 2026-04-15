@@ -2,13 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { UserButton } from '@clerk/nextjs'
 import type { User } from '@/app/generated/prisma/client'
 
 const navItems = [
   { href: '/dashboard', label: 'Home' },
   { href: '/challenge/heute', label: 'Challenge' },
   { href: '/fortschritt', label: 'Fortschritt' },
+  { href: '/buchung', label: 'Coaching' },
 ]
 
 export default function AppNav({ user }: { user: User }) {
@@ -45,7 +45,17 @@ export default function AppNav({ user }: { user: User }) {
             )}
           </div>
         </div>
-        <UserButton />
+        <div className="flex items-center gap-2">
+          <Link
+            href="/einstellungen"
+            className="px-3 py-1.5 rounded-md text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            ⚙️
+          </Link>
+          <div className="w-7 h-7 rounded-full bg-orange-500/20 flex items-center justify-center text-xs font-bold text-orange-400">
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+        </div>
       </div>
     </nav>
   )

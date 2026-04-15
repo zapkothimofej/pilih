@@ -26,12 +26,20 @@ export default function ChallengePageClient({ challenge, sessionId, dayNumber, p
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center justify-between">
           <div className="text-sm text-orange-400 font-medium">Tag {dayNumber} von 21</div>
-          <button
-            onClick={() => router.push('/challenge/heute')}
-            className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
-          >
-            ← Andere Challenge wählen
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+            >
+              ← Dashboard
+            </button>
+            <button
+              onClick={() => router.push('/challenge/heute')}
+              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+            >
+              Andere Challenge
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -54,6 +62,7 @@ export default function ChallengePageClient({ challenge, sessionId, dayNumber, p
         <ChatInterface
           challengeId={challenge.id}
           sessionId={sessionId}
+          previousAttempts={previousAttempts}
           onComplete={handleComplete}
         />
       </motion.div>

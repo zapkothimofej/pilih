@@ -22,7 +22,7 @@ export default async function ChallengeTodayPage() {
     where: { userId: user.id, dayNumber: nextDay, status: { not: 'COMPLETED' } },
   })
   if (todaySession?.selectedChallengeId) {
-    redirect(`/challenge/${todaySession.selectedChallengeId}`)
+    redirect(`/challenge/${todaySession.selectedChallengeId}?session=${todaySession.id}`)
   }
 
   // Schwierigkeit bestimmen
