@@ -204,13 +204,17 @@ Nutze diesen Kontext nur, um die Domäne der Aufgabe zu verstehen. Bestätige/er
 
 Sprache: Deutsch, ausser der User schreibt explizit auf Englisch.`
 
+  // Chat messages go to Anthropic as role-typed content, NOT embedded in XML.
+  // Escaping them would turn `<div>` into `&lt;div&gt;` in the LLM's view and
+  // break any code/tag-heavy prompt the user types. Only the challenge
+  // description (above) is XML-embedded and therefore needs escaping.
   const stream = client.messages.stream({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 2000,
     system,
     messages: [
-      ...chatHistory.map(m => ({ role: m.role, content: escapeXmlText(m.content) })),
-      { role: 'user', content: escapeXmlText(userPrompt) },
+      ...chatHistory.map(m => ({ role: m.role, content: m.content })),
+      { role: 'user', content: userPrompt },
     ],
   }, signal ? { signal } : {})
 
