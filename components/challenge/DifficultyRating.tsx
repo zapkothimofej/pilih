@@ -74,6 +74,15 @@ export default function DifficultyRating({ onRate, loading }: DifficultyRatingPr
               el.style.borderColor = 'var(--border-default)'
               el.style.color = 'var(--text-secondary)'
             }}
+            onFocus={e => {
+              Object.assign((e.currentTarget as HTMLButtonElement).style, opt.activeStyle)
+            }}
+            onBlur={e => {
+              const el = e.currentTarget as HTMLButtonElement
+              el.style.background = 'var(--bg-elevated)'
+              el.style.borderColor = 'var(--border-default)'
+              el.style.color = 'var(--text-secondary)'
+            }}
           >
             <span>{opt.icon}</span>
             <span className="text-[11px] font-medium">{opt.label}</span>

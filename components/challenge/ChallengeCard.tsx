@@ -40,6 +40,14 @@ export default function ChallengeCard({ challenge, index, onSelect, loading }: C
           (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-default)'
           ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-surface)'
         }}
+        onFocus={e => {
+          ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent-border)'
+          ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-elevated)'
+        }}
+        onBlur={e => {
+          ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-default)'
+          ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-surface)'
+        }}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 space-y-2.5">

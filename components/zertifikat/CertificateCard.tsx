@@ -52,6 +52,8 @@ export default function CertificateCard({ userName, completedAt, avgScore, linke
               ? { background: 'var(--accent)', color: '#fff' }
               : { background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }
             }
+            aria-label={l === 'de' ? 'Auf Deutsch anzeigen' : 'Show in English'}
+            aria-pressed={lang === l}
           >
             {l === 'de' ? 'DE' : 'EN'}
           </button>
