@@ -167,14 +167,22 @@ Bewerte die 3 Use-Cases nach der Rubrik und gib JSON zurück:
     )
   }
 
-  // Server-side recomputation — do NOT trust the LLM's recommendation blind.
-  const totalScore = review.cases.reduce((sum, c) => sum + c.score, 0)
-  const passCount = review.cases.filter((c) => c.verdict === 'PASS').length
+  // Server-side recomputation — do NOT trust the LLM's verdict, passCount
+  // or recommendation. A prompt-injection that flipped a case to PASS would
+  // otherwise still carry weight. Derive verdict from score with the
+  // documented threshold (PASS if score >= 6).
+  const casesWithVerdict = review.cases.map((c) => ({
+    ...c,
+    verdict: (c.score >= 6 ? 'PASS' : 'FAIL') as 'PASS' | 'FAIL',
+  }))
+  const totalScore = casesWithVerdict.reduce((sum, c) => sum + c.score, 0)
+  const passCount = casesWithVerdict.filter((c) => c.verdict === 'PASS').length
   const shouldApprove = passCount >= 2 && totalScore >= 18
   const status: 'APPROVED' | 'REJECTED' = shouldApprove ? 'APPROVED' : 'REJECTED'
 
   const llmReview = JSON.stringify({
     ...review,
+    cases: casesWithVerdict,
     finalRecommendation: status,
     totalScore,
     passCount,
@@ -207,7 +215,7 @@ Bewerte die 3 Use-Cases nach der Rubrik und gib JSON zurück:
     status,
     totalScore,
     passCount,
-    cases: review.cases,
+    cases: casesWithVerdict,
     overallFeedback: review.overallFeedback,
   })
 }
