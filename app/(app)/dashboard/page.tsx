@@ -6,19 +6,7 @@ import StreakCounter from '@/components/dashboard/StreakCounter'
 import DayRing from '@/components/dashboard/DayRing'
 import XPBar from '@/components/dashboard/XPBar'
 import { ArrowRightIcon, CheckIcon, TargetIcon, TrophyIcon } from '@/components/ui/icons'
-
-function calcStreak(sessions: { date: Date }[]) {
-  const sorted = [...sessions].sort((a, b) => b.date.getTime() - a.date.getTime())
-  let streak = 0
-  const today = new Date(); today.setHours(0,0,0,0)
-  for (let i = 0; i < sorted.length; i++) {
-    const d = new Date(sorted[i].date); d.setHours(0,0,0,0)
-    const exp = new Date(today); exp.setDate(today.getDate() - i)
-    if (d.getTime() === exp.getTime()) streak++
-    else break
-  }
-  return streak
-}
+import { calcStreak, totalXp } from '@/lib/progress/xp'
 
 export default async function DashboardPage() {
   const user = await getCurrentDbUser()
@@ -35,10 +23,7 @@ export default async function DashboardPage() {
 
   const completed = sessions.length
   const streak = calcStreak(sessions.map(s => ({ date: s.date })))
-  const xp = sessions.reduce((acc, s) => {
-    const earned = s.xpEarned ?? 100 + ((s.selectedChallenge?.currentDifficulty ?? 1) - 1) * 20
-    return acc + earned
-  }, 0)
+  const xp = totalXp(sessions)
   const hasChallengeToday = sessions.some(s => {
     const d = new Date(s.date); d.setHours(0,0,0,0)
     const today = new Date(); today.setHours(0,0,0,0)

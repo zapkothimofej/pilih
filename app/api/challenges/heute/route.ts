@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
 import { selectDailyChallenges } from '@/lib/adaptive/difficulty'
 import { getCurrentDbUser } from '@/lib/utils/auth'
+import { nextDayNumber } from '@/lib/progress/xp'
 
 export async function GET() {
   const user = await getCurrentDbUser()
@@ -14,9 +15,7 @@ export async function GET() {
     orderBy: { dayNumber: 'asc' },
   })
 
-  const completedDays = completedSessions.map((s) => s.dayNumber)
-  const highestCompleted = completedDays.length > 0 ? Math.max(...completedDays) : 0
-  const nextDay = highestCompleted + 1
+  const nextDay = nextDayNumber(completedSessions.map((s) => s.dayNumber))
 
   if (nextDay > 21) {
     return NextResponse.json({ done: true, message: 'Alle 21 Tage abgeschlossen!' })

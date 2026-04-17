@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 import { prisma } from '@/lib/db/prisma'
 import { selectDailyChallenges } from '@/lib/adaptive/difficulty'
+import { nextDayNumber } from '@/lib/progress/xp'
 import ChallengeTodayClient from './ChallengeTodayClient'
 
 export default async function ChallengeTodayPage() {
@@ -14,7 +15,7 @@ export default async function ChallengeTodayPage() {
     include: { selectedChallenge: true },
   })
 
-  const nextDay = completedSessions.length + 1
+  const nextDay = nextDayNumber(completedSessions.map((s) => s.dayNumber))
   if (nextDay > 21) redirect('/abschluss')
 
   // Heute bereits eine Challenge ausgewählt?

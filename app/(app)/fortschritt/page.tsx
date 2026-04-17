@@ -2,19 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 import { prisma } from '@/lib/db/prisma'
 import { FlameIcon, BoltIcon, BotIcon, CheckIcon } from '@/components/ui/icons'
-
-function calcStreak(sessions: { date: Date }[]) {
-  const sorted = [...sessions].sort((a, b) => b.date.getTime() - a.date.getTime())
-  let streak = 0
-  const today = new Date(); today.setHours(0,0,0,0)
-  for (let i = 0; i < sorted.length; i++) {
-    const d = new Date(sorted[i].date); d.setHours(0,0,0,0)
-    const exp = new Date(today); exp.setDate(today.getDate() - i)
-    if (d.getTime() === exp.getTime()) streak++
-    else break
-  }
-  return streak
-}
+import { calcStreak, totalXp } from '@/lib/progress/xp'
 
 export default async function FortschrittPage() {
   const user = await getCurrentDbUser()
@@ -30,10 +18,11 @@ export default async function FortschrittPage() {
   })
 
   const streak = calcStreak(sessions.map(s => ({ date: s.date })))
-  const xp = sessions.reduce((acc, s) => acc + 100 + ((s.selectedChallenge?.currentDifficulty ?? 1) - 1) * 20, 0)
-  const avgScore = sessions.flatMap(s => s.attempts).reduce(
-    (acc, a, _, arr) => acc + a.judgeScore / arr.length, 0
-  )
+  const xp = totalXp(sessions)
+  const scored = sessions.flatMap(s => s.attempts)
+  const avgScore = scored.length
+    ? scored.reduce((acc, a) => acc + a.judgeScore, 0) / scored.length
+    : 0
 
   const days = Array.from({ length: 21 }, (_, i) => {
     const day = i + 1
