@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server'
 
 import { prisma } from '@/lib/db/prisma'
+import { getCurrentDbUser } from '@/lib/utils/auth'
 
 export async function POST() {
-  
-  
-
-  const user = await prisma.user.findUnique({ where: { id: 'test-user-1' } })
+  const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 
   const submission = await prisma.finalSubmission.findUnique({ where: { userId: user.id } })

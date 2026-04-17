@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db/prisma'
+import { getCurrentDbUser } from '@/lib/utils/auth'
 
 const createBookingSchema = z.object({
   type: z.enum(['GROUP_MEETING', 'ONE_ON_ONE']),
@@ -13,7 +14,7 @@ const MEETING_URLS: Record<string, string> = {
 }
 
 export async function GET() {
-  const user = await prisma.user.findUnique({ where: { id: 'test-user-1' } })
+  const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 
   const bookings = await prisma.booking.findMany({
@@ -25,7 +26,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const user = await prisma.user.findUnique({ where: { id: 'test-user-1' } })
+  const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 
   const body = await req.json() as unknown

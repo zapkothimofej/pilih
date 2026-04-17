@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db/prisma'
 import { escapeXmlText } from '@/lib/utils/escape'
 import { rateLimit, rateLimitHeaders } from '@/lib/utils/rate-limit'
+import { getCurrentDbUser } from '@/lib/utils/auth'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -77,7 +78,7 @@ function stripCodeFences(raw: string): string {
 }
 
 export async function POST(req: Request) {
-  const user = await prisma.user.findUnique({ where: { id: 'test-user-1' } })
+  const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 
   const rl = rateLimit(`submission:${user.id}`, SUBMISSION_LIMIT, SUBMISSION_WINDOW_MS)
