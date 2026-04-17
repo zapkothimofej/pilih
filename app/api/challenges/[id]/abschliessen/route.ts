@@ -64,6 +64,10 @@ export async function POST(
     difficultyRating,
     avgScore
   )
+  // Relative delta so the generator's carefully balanced pool distribution is
+  // preserved. An absolute overwrite on every incomplete challenge would
+  // collapse the spread to a single value and break selectDailyChallenges.
+  const delta = nextDifficulty - challenge.currentDifficulty
 
   const xp = 100 + (challenge.currentDifficulty - 1) * 20
 
@@ -88,10 +92,14 @@ export async function POST(
       where: { id: challengeId },
       data: { status: 'COMPLETED', currentDifficulty: nextDifficulty },
     })
-    await tx.challenge.updateMany({
-      where: { userId: user.id, status: { not: 'COMPLETED' } },
-      data: { currentDifficulty: nextDifficulty },
-    })
+    if (delta !== 0) {
+      // Raw SQL because Prisma has no cross-row arithmetic + LEAST/GREATEST.
+      await tx.$executeRaw`
+        UPDATE "Challenge"
+        SET "currentDifficulty" = LEAST(5, GREATEST(1, "currentDifficulty" + ${delta}))
+        WHERE "userId" = ${user.id} AND "status" <> 'COMPLETED'::"ChallengeStatus"
+      `
+    }
   })
 
   return NextResponse.json({ success: true, xp, nextDifficulty, avgScore })
