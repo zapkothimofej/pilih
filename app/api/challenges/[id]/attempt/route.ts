@@ -76,9 +76,18 @@ export async function POST(
     return NextResponse.json({ error: 'Zugriff verweigert' }, { status: 403 })
   }
 
-  // LLM-Antwort streamen + Judge parallel laufen lassen
+  // LLM-Antwort streamen + Judge parallel laufen lassen. Der Judge hängt
+  // nur vom challenge.description und userPrompt ab — startet also vor der
+  // Stream-Loop und läuft während Haiku streamt. Wir awaiten ihn erst am
+  // Ende, sodass sich die Sonnet-Latenz mit der Haiku-Latenz überlappt.
   const encoder = new TextEncoder()
   let fullResponse = ''
+  const judgePromise = judgePrompt(challenge.description, userPrompt).catch(
+    (err) => {
+      logError('attempt', 'judge failed in parallel', err)
+      throw err
+    }
+  )
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -103,9 +112,8 @@ export async function POST(
 
         if (req.signal.aborted) return
 
-        // Judge-AI (isolierter Kontext, nach Streaming) — immer laufen lassen,
-        // damit der avgScore für die adaptive Difficulty verlässlich ist.
-        const judgeFeedback = await judgePrompt(challenge.description, userPrompt)
+        // Judge wurde parallel gestartet — hier nur awaiten.
+        const judgeFeedback = await judgePromise
 
         // Count is advisory and not row-locked; concurrent requests can land on
         // the same `attemptNumber`. The DB-level `@@unique([sessionId,
