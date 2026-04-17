@@ -30,7 +30,7 @@ export default async function FortschrittPage() {
   })
 
   const streak = calcStreak(sessions.map(s => ({ date: s.date })))
-  const xp = sessions.reduce((acc, s) => acc + 100 + (s.selectedChallenge?.difficulty ?? 1 - 1) * 20, 0)
+  const xp = sessions.reduce((acc, s) => acc + 100 + ((s.selectedChallenge?.currentDifficulty ?? 1) - 1) * 20, 0)
   const avgScore = sessions.flatMap(s => s.attempts).reduce(
     (acc, a, _, arr) => acc + a.judgeScore / arr.length, 0
   )

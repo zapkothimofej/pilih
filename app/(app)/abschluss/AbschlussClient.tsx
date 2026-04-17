@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { FinalSubmission } from '@/app/generated/prisma/client'
 import { TrophyIcon, ArrowRightIcon, CheckIcon } from '@/components/ui/icons'
 
 type UseCase = { title: string; description: string; prompt: string; result: string }
@@ -38,7 +37,7 @@ const FIELD_HINT: Record<keyof UseCase, string> = {
   result: 'Mindestens 20 Zeichen',
 }
 
-export default function AbschlussClient({ existingSubmission: _existingSubmission }: { existingSubmission: FinalSubmission | null }) {
+export default function AbschlussClient() {
   const router = useRouter()
   const [cases, setCases] = useState<[UseCase, UseCase, UseCase]>([EMPTY, EMPTY, EMPTY])
   const [loading, setLoading] = useState(false)
@@ -258,15 +257,15 @@ function FeedbackView({ feedback, onEdit }: { feedback: FeedbackState; onEdit: (
       <div
         className="rounded-2xl border p-5 space-y-3"
         style={{
-          background: 'color-mix(in srgb, var(--error) 10%, var(--bg-surface))',
-          borderColor: 'color-mix(in srgb, var(--error) 40%, var(--border-default))',
+          background: 'var(--error-dim)',
+          borderColor: 'var(--error-border)',
         }}
       >
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
             style={{
-              background: 'color-mix(in srgb, var(--error) 20%, transparent)',
+              background: 'var(--error-dim)',
               color: 'var(--error)',
             }}
           >
@@ -323,13 +322,13 @@ function FeedbackView({ feedback, onEdit }: { feedback: FeedbackState; onEdit: (
                 style={
                   c.verdict === 'PASS'
                     ? {
-                        background: 'color-mix(in srgb, var(--success) 15%, transparent)',
-                        borderColor: 'color-mix(in srgb, var(--success) 40%, transparent)',
+                        background: 'var(--success-dim)',
+                        borderColor: 'var(--success-border)',
                         color: 'var(--success)',
                       }
                     : {
-                        background: 'color-mix(in srgb, var(--error) 15%, transparent)',
-                        borderColor: 'color-mix(in srgb, var(--error) 40%, transparent)',
+                        background: 'var(--error-dim)',
+                        borderColor: 'var(--error-border)',
                         color: 'var(--error)',
                       }
                 }

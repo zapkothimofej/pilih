@@ -35,7 +35,7 @@ export default function AppNav({ user }: { user: User }) {
 
           <div className="flex items-center gap-0.5">
             {navItems.map((item) => {
-              const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+              const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
               return (
                 <Link
                   key={item.href}

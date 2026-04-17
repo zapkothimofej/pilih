@@ -15,5 +15,5 @@ export default async function AbschlussPage() {
   const existing = await prisma.finalSubmission.findUnique({ where: { userId: user.id } })
   if (existing?.status === 'APPROVED') redirect('/zertifikat')
 
-  return <AbschlussClient existingSubmission={existing} />
+  return <AbschlussClient />
 }

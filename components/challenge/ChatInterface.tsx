@@ -43,10 +43,15 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
   const [attempts, setAttempts] = useState(previousAttempts.length)
   const bottomRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isStreaming])
+
+  useEffect(() => {
+    if (!isStreaming && !showRating) textareaRef.current?.focus()
+  }, [isStreaming, showRating])
 
   // Stop streaming cleanly if component unmounts mid-flight.
   useEffect(() => () => abortRef.current?.abort(), [])
@@ -253,8 +258,10 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
                       <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--text-muted)', animationDelay: '150ms' }} />
                       <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--text-muted)', animationDelay: '300ms' }} />
                     </span>
+                  ) : msg.role === 'assistant' ? (
+                    <MessageMarkdown content={msg.content} role="assistant" />
                   ) : (
-                    <MessageMarkdown content={msg.content} role={msg.role} />
+                    <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.content}</span>
                   )}
 
                   {msg.role === 'assistant' && msg.content && !isStreamingBubble && (
@@ -316,6 +323,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
         <div className="border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
           <div className="flex gap-2">
             <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -594,18 +602,11 @@ function CopyButton({
     }
   }
 
-  const baseStyle =
-    variant === 'codeblock'
-      ? {
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border-default)',
-          color: 'var(--text-muted)',
-        }
-      : {
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border-default)',
-          color: 'var(--text-muted)',
-        }
+  const baseStyle = {
+    background: 'var(--bg-surface)',
+    border: '1px solid var(--border-default)',
+    color: 'var(--text-muted)',
+  }
 
   return (
     <button
