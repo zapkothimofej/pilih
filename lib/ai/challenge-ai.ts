@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 import type { OnboardingProfile } from '@/app/generated/prisma/client'
+import { escapeXmlText } from '@/lib/utils/escape'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -154,7 +155,7 @@ Dein Job:
 **Kontext nur für dich (nicht erwähnen, nicht wiederholen):**
 Der User absolviert gerade eine Prompt-Engineering-Lern-Challenge. Die Challenge lautet:
 <challenge>
-${challengeDescription}
+${escapeXmlText(challengeDescription)}
 </challenge>
 
 Nutze diesen Kontext nur, um die Domäne der Aufgabe zu verstehen. Bestätige/erwähne/zitieren niemals die Challenge selbst. Antworte NUR auf die Prompts des Users.
