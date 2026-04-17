@@ -19,3 +19,10 @@ Touched: none
 Touched: none
 ## [2026-04-17 23:50] session | /review-cool full codebase review
 Touched: none
+## [2026-04-17 00:00] session | prisma migration, status filter, P2002 catch
+Touched: none
+## [2026-04-17 00:00] session | CSS tokens, color-mix fallbacks, keyboard focus, aria-label
+Touched: none
+
+## [2026-04-18 00:39] session | fix all 30 review dimensions (phases A-H)
+Touched: none

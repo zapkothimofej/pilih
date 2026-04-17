@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { prisma } from '@/lib/db/prisma'
 import { getNextDifficultyWithScore } from '@/lib/adaptive/difficulty'
+import { getCurrentDbUser } from '@/lib/utils/auth'
 
 const bodySchema = z.object({
   sessionId: z.string().min(1),
@@ -14,13 +15,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: challengeId } = await params
-  const user = await prisma.user.findUnique({ where: { id: 'test-user-1' } })
+  const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 
   let body: z.infer<typeof bodySchema>
   try {
     body = bodySchema.parse(await req.json())
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Ungültiger Request-Body' }, { status: 400 })
   }
   const { sessionId, difficultyRating } = body
@@ -37,9 +38,9 @@ export async function POST(
     return NextResponse.json({ error: 'Zugriff verweigert' }, { status: 403 })
   }
 
-  // Idempotenz: Doppelklick soll kein doppeltes XP/Difficulty-Update erzeugen.
+  // Idempotenz: bereits abgeschlossen → persisted xpEarned zurückgeben
   if (session.status === 'COMPLETED') {
-    const xp = 100 + (challenge.currentDifficulty - 1) * 20
+    const xp = session.xpEarned ?? 100 + (challenge.currentDifficulty - 1) * 20
     return NextResponse.json({
       success: true,
       xp,
@@ -64,32 +65,34 @@ export async function POST(
     avgScore
   )
 
-  // XP berechnen (Basis: 100, Bonus für höhere Schwierigkeit) — auf Basis
-  // der Difficulty zum Abschlusszeitpunkt.
   const xp = 100 + (challenge.currentDifficulty - 1) * 20
 
-  // Alles oder nichts: Session-Abschluss, Challenge-Status und Difficulty-
-  // Anpassung für kommende Tage in einer Transaktion.
-  await prisma.$transaction([
-    prisma.dailySession.update({
+  // Move completion check inside transaction to prevent double-completion race.
+  await prisma.$transaction(async (tx) => {
+    const current = await tx.dailySession.findUnique({
+      where: { id: sessionId },
+      select: { status: true },
+    })
+    if (current?.status === 'COMPLETED') return
+
+    await tx.dailySession.update({
       where: { id: sessionId },
       data: {
         status: 'COMPLETED',
         difficultyRating,
         completedAt: new Date(),
+        xpEarned: xp,
       },
-    }),
-    prisma.challenge.update({
+    })
+    await tx.challenge.update({
       where: { id: challengeId },
       data: { status: 'COMPLETED', currentDifficulty: nextDifficulty },
-    }),
-    // Propagate the new target difficulty to all the user's challenges so
-    // `heute` reads a fresh value (the completed row is covered by step 2).
-    prisma.challenge.updateMany({
+    })
+    await tx.challenge.updateMany({
       where: { userId: user.id, status: { not: 'COMPLETED' } },
       data: { currentDifficulty: nextDifficulty },
-    }),
-  ])
+    })
+  })
 
   return NextResponse.json({ success: true, xp, nextDifficulty, avgScore })
 }

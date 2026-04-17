@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { prisma } from '@/lib/db/prisma'
+import { getCurrentDbUser } from '@/lib/utils/auth'
 
 const bodySchema = z.object({
   challengeId: z.string().min(1),
@@ -10,13 +11,13 @@ const bodySchema = z.object({
 })
 
 export async function POST(req: Request) {
-  const user = await prisma.user.findUnique({ where: { id: 'test-user-1' } })
+  const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 
   let body: z.infer<typeof bodySchema>
   try {
     body = bodySchema.parse(await req.json())
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Ungültiger Request-Body' }, { status: 400 })
   }
   const { challengeId, day, existingSessionId } = body
@@ -50,18 +51,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ sessionId: existingSessionId })
   }
 
-  // Duplikat-Guard: pro (user, dayNumber) nur eine Session. DB-Unique deckt
-  // das ebenfalls ab — hier liefern wir die klarere Fehlermeldung.
-  const duplicate = await prisma.dailySession.findFirst({
-    where: { userId: user.id, dayNumber: day },
-  })
-  if (duplicate) {
-    return NextResponse.json(
-      { error: 'Session für diesen Tag existiert bereits' },
-      { status: 409 }
-    )
-  }
-
+  // Rely solely on the DB unique constraint — no pre-check to avoid TOCTOU race.
   let session: { id: string }
   try {
     session = await prisma.dailySession.create({

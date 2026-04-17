@@ -20,9 +20,9 @@ const OPTIONS: {
     label: 'Zu leicht',
     icon: <EasyIcon />,
     activeStyle: {
-      background: 'rgba(99,179,237,0.08)',
-      borderColor: 'rgba(99,179,237,0.35)',
-      color: '#63b3ed',
+      background: 'var(--info-dim)',
+      borderColor: 'var(--info-border)',
+      color: 'var(--info)',
     },
   },
   {
@@ -63,6 +63,7 @@ export default function DifficultyRating({ onRate, loading }: DifficultyRatingPr
             key={opt.value}
             onClick={() => onRate(opt.value)}
             disabled={loading}
+            aria-label={`Schwierigkeit: ${opt.label}`}
             className="flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border transition-all disabled:opacity-40 text-sm"
             style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
             onMouseEnter={e => {

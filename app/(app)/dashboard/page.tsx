@@ -35,7 +35,10 @@ export default async function DashboardPage() {
 
   const completed = sessions.length
   const streak = calcStreak(sessions.map(s => ({ date: s.date })))
-  const xp = sessions.reduce((acc, s) => acc + 100 + ((s.selectedChallenge?.difficulty ?? 1) - 1) * 20, 0)
+  const xp = sessions.reduce((acc, s) => {
+    const earned = s.xpEarned ?? 100 + ((s.selectedChallenge?.currentDifficulty ?? 1) - 1) * 20
+    return acc + earned
+  }, 0)
   const hasChallengeToday = sessions.some(s => {
     const d = new Date(s.date); d.setHours(0,0,0,0)
     const today = new Date(); today.setHours(0,0,0,0)

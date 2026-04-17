@@ -88,7 +88,7 @@ export default function JudgeFeedbackPopup({ feedback, onClose }: JudgeFeedbackP
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+          style={{ background: 'var(--overlay)', backdropFilter: 'var(--overlay-blur)' }}
           onClick={onClose}
         >
           <motion.div

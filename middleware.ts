@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// TESTING MODE — Clerk deaktiviert
+// TESTING MODE — Clerk deaktiviert. Pass-through für alle Routen.
+// TODO: Ersetzen durch clerkMiddleware() aus @clerk/nextjs/server sobald echte Clerk-Keys konfiguriert sind.
 export function middleware(_req: NextRequest) {
   return NextResponse.next()
 }

@@ -106,6 +106,8 @@ model OnboardingProfile {
   aiFrequency      String
   completedAt      DateTime?
   createdAt        DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Challenge {
@@ -122,6 +124,9 @@ model Challenge {
   status            ChallengeStatus @default(UPCOMING)
   sessions          DailySession[]
   createdAt         DateTime        @default(now())
+
+  @@index([userId])
+  @@index([status])
 }
 
 model DailySession {
@@ -136,9 +141,12 @@ model DailySession {
   difficultyRating    DifficultyRating?
   attempts            PromptAttempt[]
   completedAt         DateTime?
+  xpEarned            Int?
   createdAt           DateTime          @default(now())
 
   @@unique([userId, dayNumber])
+  @@index([userId])
+  @@index([status])
 }
 
 model PromptAttempt {
@@ -156,6 +164,8 @@ model PromptAttempt {
   createdAt     DateTime     @default(now())
 
   @@unique([sessionId, attemptNumber])
+  @@index([userId])
+  @@index([sessionId])
 }
 
 model FinalSubmission {
@@ -190,4 +200,12 @@ model Booking {
   meetingUrl  String
   status      BookingStatus @default(UPCOMING)
   createdAt   DateTime      @default(now())
+
+  @@index([userId])
+}
+
+model ProcessedWebhook {
+  id        String   @id @default(cuid())
+  svixId    String   @unique
+  createdAt DateTime @default(now())
 }

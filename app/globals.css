@@ -43,6 +43,15 @@
   --warning: #fbbf24;
   --error: #f87171;
   --error-dim: rgba(248, 113, 113, 0.10);
+
+  /* Info state tokens (blue, used for neutral informational UI) */
+  --info: #63b3ed;
+  --info-dim: rgba(99, 179, 237, 0.08);
+  --info-border: rgba(99, 179, 237, 0.35);
+
+  /* Overlay tokens for modal backdrops */
+  --overlay: rgba(0, 0, 0, 0.75);
+  --overlay-blur: blur(6px);
 }
 
 * {

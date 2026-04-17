@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 
 export default function AppError({
@@ -9,6 +10,15 @@ export default function AppError({
   error: Error & { digest?: string }
   unstable_retry: () => void
 }) {
+  const [retryCount, setRetryCount] = useState(0)
+  const maxRetries = 3
+
+  function handleRetry() {
+    if (retryCount >= maxRetries) return
+    setRetryCount(c => c + 1)
+    unstable_retry()
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-5 px-4">
       <div
@@ -28,15 +38,21 @@ export default function AppError({
               ID: {error.digest}
             </span>
           )}
+          {retryCount > 0 && (
+            <span className="block mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+              Versuch {retryCount}/{maxRetries}
+            </span>
+          )}
         </p>
       </div>
       <div className="flex gap-3">
         <button
-          onClick={unstable_retry}
-          className="px-5 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-85"
+          onClick={handleRetry}
+          disabled={retryCount >= maxRetries}
+          className="px-5 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ background: 'var(--accent)', color: '#fff' }}
         >
-          Erneut versuchen
+          {retryCount >= maxRetries ? 'Kein Retry mehr möglich' : 'Erneut versuchen'}
         </button>
         <Link
           href="/dashboard"

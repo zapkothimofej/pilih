@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import type { User } from '@/app/generated/prisma/client'
+import type { Role } from '@/app/generated/prisma/client'
 import { PilihMark, BarChartIcon, CalendarIcon, SettingsIcon, TargetIcon, HomeIcon, AdminIcon } from '@/components/ui/icons'
 
 const navItems = [
@@ -12,7 +12,7 @@ const navItems = [
   { href: '/buchung', label: 'Coaching', icon: CalendarIcon },
 ]
 
-export default function AppNav({ user }: { user: User }) {
+export default function AppNav({ user }: { user: { name: string; role: Role } }) {
   const pathname = usePathname()
 
   return (

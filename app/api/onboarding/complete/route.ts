@@ -1,24 +1,22 @@
 import { NextResponse } from 'next/server'
 
 import { prisma } from '@/lib/db/prisma'
+import { getCurrentDbUser } from '@/lib/utils/auth'
 import { z } from 'zod'
 
 const schema = z.object({
-  companyName: z.string().min(1),
-  department: z.string().min(1),
-  jobTitle: z.string().min(1),
-  dailyDescription: z.string().min(10),
+  companyName: z.string().min(1).max(200),
+  department: z.string().min(1).max(200),
+  jobTitle: z.string().min(1).max(200),
+  dailyDescription: z.string().min(10).max(2000),
   aiSkillLevel: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']),
-  aiToolsUsed: z.array(z.string()),
-  aiFrequency: z.string().min(1),
+  aiToolsUsed: z.array(z.string().min(1).max(50)).max(20),
+  aiFrequency: z.string().min(1).max(200),
 })
 
 export async function POST(req: Request) {
-  
-  
-
-  const user = await prisma.user.findUnique({ where: { id: 'test-user-1' } })
-  if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
+  const user = await getCurrentDbUser()
+  if (!user) return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
 
   const body = await req.json()
   const parsed = schema.safeParse(body)

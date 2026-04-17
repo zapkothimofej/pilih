@@ -3,13 +3,14 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
 import { generateChallenges } from '@/lib/ai/challenge-ai'
 import { rateLimit, rateLimitHeaders } from '@/lib/utils/rate-limit'
+import { getCurrentDbUser } from '@/lib/utils/auth'
 
 // 3 requests per hour — challenge generation is expensive (Claude Sonnet, 21 challenges)
 const GENERATE_LIMIT = 3
 const GENERATE_WINDOW_MS = 60 * 60 * 1000
 
 export async function POST() {
-  const user = await prisma.user.findUnique({ where: { id: 'test-user-1' } })
+  const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 
   const rl = rateLimit(`generate:${user.id}`, GENERATE_LIMIT, GENERATE_WINDOW_MS)
@@ -25,27 +26,29 @@ export async function POST() {
     return NextResponse.json({ error: 'Onboarding nicht abgeschlossen' }, { status: 400 })
   }
 
-  // Bereits generiert? Nicht nochmal generieren
-  const existing = await prisma.challenge.count({ where: { userId: user.id } })
-  if (existing > 0) {
-    return NextResponse.json({ success: true, count: existing, cached: true })
-  }
+  // Atomic check-and-create: prevents duplicate generation under concurrent requests
+  return await prisma.$transaction(async (tx) => {
+    const existing = await tx.challenge.count({ where: { userId: user.id } })
+    if (existing > 0) {
+      return NextResponse.json({ success: true, count: existing, cached: true })
+    }
 
-  const generated = await generateChallenges(profile)
+    const generated = await generateChallenges(profile)
 
-  await prisma.challenge.createMany({
-    data: generated.map((c) => ({
-      userId: user.id,
-      dayNumber: c.dayNumber,
-      title: c.title,
-      description: c.description,
-      promptingTips: c.promptingTips,
-      category: c.category,
-      difficulty: c.difficulty,
-      currentDifficulty: c.difficulty,
-      status: 'UPCOMING',
-    })),
+    await tx.challenge.createMany({
+      data: generated.map((c) => ({
+        userId: user.id,
+        dayNumber: c.dayNumber,
+        title: c.title,
+        description: c.description,
+        promptingTips: c.promptingTips,
+        category: c.category,
+        difficulty: c.difficulty,
+        currentDifficulty: c.difficulty,
+        status: 'UPCOMING',
+      })),
+    })
+
+    return NextResponse.json({ success: true, count: generated.length })
   })
-
-  return NextResponse.json({ success: true, count: generated.length })
 }

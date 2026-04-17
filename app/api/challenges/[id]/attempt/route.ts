@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { Prisma } from '@/app/generated/prisma/client'
@@ -5,6 +6,8 @@ import { prisma } from '@/lib/db/prisma'
 import { streamChallengeResponse } from '@/lib/ai/challenge-ai'
 import { judgePrompt } from '@/lib/ai/judge-ai'
 import { rateLimit, rateLimitHeaders } from '@/lib/utils/rate-limit'
+import { getCurrentDbUser } from '@/lib/utils/auth'
+import { logError } from '@/lib/utils/log'
 
 // 20 attempts per hour per user — covers a full day's active work
 const ATTEMPT_LIMIT = 20
@@ -28,8 +31,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: challengeId } = await params
-  const user = await prisma.user.findUnique({ where: { id: 'test-user-1' } })
-  if (!user) return new Response('User nicht gefunden', { status: 404 })
+  const user = await getCurrentDbUser()
+  if (!user) return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
 
   const rl = rateLimit(`attempt:${user.id}`, ATTEMPT_LIMIT, ATTEMPT_WINDOW_MS)
   if (!rl.allowed) {
@@ -48,24 +51,29 @@ export async function POST(
   let body: z.infer<typeof bodySchema>
   try {
     body = bodySchema.parse(await req.json())
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: 'Ungültiger Request-Body' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    )
+  } catch {
+    return NextResponse.json({ error: 'Ungültiger Request-Body' }, { status: 400 })
   }
   const { userPrompt, sessionId, chatHistory } = body
 
+  const totalHistoryChars = chatHistory.reduce((sum, m) => sum + m.content.length, 0)
+  if (totalHistoryChars > 20000) {
+    return NextResponse.json(
+      { error: 'Chat-Verlauf zu lang. Bitte eine neue Session starten.' },
+      { status: 413 }
+    )
+  }
+
   const challenge = await prisma.challenge.findUnique({ where: { id: challengeId } })
-  if (!challenge) return new Response('Challenge nicht gefunden', { status: 404 })
+  if (!challenge) return NextResponse.json({ error: 'Challenge nicht gefunden' }, { status: 404 })
 
   const session = await prisma.dailySession.findUnique({ where: { id: sessionId } })
-  if (!session) return new Response('Session nicht gefunden', { status: 404 })
+  if (!session) return NextResponse.json({ error: 'Session nicht gefunden' }, { status: 404 })
   if (
     session.userId !== user.id ||
     session.selectedChallengeId !== challengeId
   ) {
-    return new Response('Zugriff verweigert', { status: 403 })
+    return NextResponse.json({ error: 'Zugriff verweigert' }, { status: 403 })
   }
 
   // LLM-Antwort streamen + Judge parallel laufen lassen
@@ -74,18 +82,26 @@ export async function POST(
 
   const stream = new ReadableStream({
     async start(controller) {
+      req.signal.addEventListener('abort', () => {
+        controller.close()
+      })
+
       try {
         // Challenge-AI streamen
         for await (const chunk of streamChallengeResponse(
           challenge.description,
           chatHistory,
-          userPrompt
+          userPrompt,
+          req.signal
         )) {
+          if (req.signal.aborted) break
           fullResponse += chunk
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ type: 'chunk', text: chunk })}\n\n`)
           )
         }
+
+        if (req.signal.aborted) return
 
         // Judge-AI (isolierter Kontext, nach Streaming) — immer laufen lassen,
         // damit der avgScore für die adaptive Difficulty verlässlich ist.
@@ -117,6 +133,7 @@ export async function POST(
               err.code === 'P2002'
             ) {
               lastConflict = err
+              await new Promise(r => setTimeout(r, Math.random() * 100 + 50))
               continue
             }
             throw err
@@ -131,11 +148,12 @@ export async function POST(
                 status: 409,
                 message:
                   'Versuch konnte wegen paralleler Anfragen nicht gespeichert werden. Bitte erneut versuchen.',
+                partialResponse: fullResponse.slice(0, 500),
               })}\n\n`
             )
           )
           controller.close()
-          console.error('[attempt] P2002 conflict after 3 retries', lastConflict)
+          logError('attempt', 'P2002 conflict after 3 retries', lastConflict)
           return
         }
 
@@ -160,7 +178,8 @@ export async function POST(
         )
         controller.close()
       } catch (err) {
-        console.error('[attempt] stream error', err)
+        if (req.signal.aborted) return
+        logError('attempt', 'stream error', err)
         controller.enqueue(
           encoder.encode(
             `data: ${JSON.stringify({

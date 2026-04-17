@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { Webhook } from 'svix'
 import { prisma } from '@/lib/db/prisma'
+import { logError } from '@/lib/utils/log'
 
 type ClerkWebhookEvent = {
   type: string
@@ -39,6 +40,18 @@ export async function POST(req: Request) {
     }) as ClerkWebhookEvent
   } catch {
     return new Response('Webhook-Verifikation fehlgeschlagen', { status: 400 })
+  }
+
+  // Idempotency: skip already-processed webhooks
+  try {
+    await prisma.processedWebhook.create({ data: { svixId } })
+  } catch (err: unknown) {
+    if ((err as { code?: string })?.code === 'P2002') {
+      // Already processed — return 200 to prevent Svix retry
+      return new Response('OK', { status: 200 })
+    }
+    logError('webhook', 'Failed to record processed webhook', err)
+    throw err
   }
 
   if (event.type === 'user.created' || event.type === 'user.updated') {

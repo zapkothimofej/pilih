@@ -37,6 +37,31 @@ const generatedChallengesSchema = z
   })
 
 const GENERATOR_SYSTEM_PROMPT = `Du bist der führende Prompt-Engineering-Coach in Deutschland.
+Kalibrierungs-Beispiele für Challenges in deinem gewünschten Format:
+
+<beispiel kategorie="Texterstellung" schwierigkeit="1">
+{
+  "dayNumber": 1,
+  "title": "Jobanzeige mit Rollen-Prompting verfassen",
+  "description": "Lass Claude eine Stellenanzeige für eine Stelle in deiner Abteilung schreiben. Gib Claude eine klare Rolle (z.B. 'Senior Recruiter') und beschreibe die Position präzise. Das Ergebnis soll direkt für euer Karriereportal verwendbar sein.",
+  "promptingTips": "1. Weise Claude explizit eine Persona zu (z.B. 'Übernimm die Rolle eines erfahrenen HR-Texters'). 2. Gib Zielgruppe, Tonalität und Länge als Constraint an. 3. Nenne konkrete Must-haves und Nice-to-haves für die Stelle.",
+  "category": "Texterstellung",
+  "difficulty": 1
+}
+</beispiel>
+
+<beispiel kategorie="Analyse" schwierigkeit="3">
+{
+  "dayNumber": 11,
+  "title": "Meeting-Transkript auf Kommunikationsmuster analysieren",
+  "description": "Lade ein Meeting-Transkript in Claude und lass es wiederkehrende Kommunikationsmuster identifizieren — z.B. wer dominiert, wo Entscheidungen verzögert werden, welche Themen wiederholt aufkommen. Das Ergebnis ist eine priorisierte Muster-Liste mit konkreten Handlungsempfehlungen.",
+  "promptingTips": "1. Nutze Long-Context-Prompting: Gib das vollständige Transkript als Daten-Block. 2. Lass Claude zuerst alle Muster auflisten (Chain-of-Thought), dann priorisieren. 3. Definiere die Ausgabe als strukturierte Tabelle mit Spalten: Muster, Häufigkeit, Empfehlung.",
+  "category": "Analyse",
+  "difficulty": 3
+}
+</beispiel>
+
+
 Du entwickelst ein 21-tägiges "KI-Führerschein"-Curriculum, das einen Lernenden von blosser LLM-Nutzung zu echter Prompt-Engineering-Kompetenz bringt.
 
 Design-Prinzipien für das Curriculum:
@@ -112,17 +137,31 @@ Antworte mit einem JSON-Array, exakt in diesem Format (KEIN Wrapper-Objekt, KEIN
   let lastError: unknown = null
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
+      const messages: Array<{ role: 'user' | 'assistant'; content: string }> =
+        attempt === 0
+          ? [{ role: 'user', content: userMessage }]
+          : [
+              { role: 'user', content: userMessage },
+              {
+                role: 'user',
+                content: `Vorheriger Versuch schlug fehl: ${lastError instanceof Error ? lastError.message : String(lastError)}. Bitte korrigieren und erneut als valides JSON-Array antworten.`,
+              },
+            ]
+
       const message = await client.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 16000,
         system: GENERATOR_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userMessage }],
+        messages,
       })
 
       const content = message.content[0]
       if (content.type !== 'text') throw new Error('Unerwarteter Response-Typ von Claude')
 
-      const parsed = JSON.parse(stripCodeFences(content.text))
+      const raw = stripCodeFences(content.text)
+      if (!raw.trim().endsWith(']')) throw new Error('Response endet nicht mit "]" — möglicherweise abgeschnitten')
+
+      const parsed = JSON.parse(raw)
       return generatedChallengesSchema.parse(parsed) as GeneratedChallenge[]
     } catch (err) {
       lastError = err
@@ -136,8 +175,11 @@ Antworte mit einem JSON-Array, exakt in diesem Format (KEIN Wrapper-Objekt, KEIN
 export async function* streamChallengeResponse(
   challengeDescription: string,
   chatHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
-  userPrompt: string
+  userPrompt: string,
+  signal?: AbortSignal
 ): AsyncGenerator<string> {
+  const truncatedDescription = challengeDescription.slice(0, 500)
+
   const system = `Du bist das LLM, an das der User seinen Prompt richtet. Du simulierst ein neutrales, leistungsfähiges Arbeits-LLM (vergleichbar mit Claude, ChatGPT oder Gemini).
 
 Dein Job:
@@ -155,7 +197,7 @@ Dein Job:
 **Kontext nur für dich (nicht erwähnen, nicht wiederholen):**
 Der User absolviert gerade eine Prompt-Engineering-Lern-Challenge. Die Challenge lautet:
 <challenge>
-${escapeXmlText(challengeDescription)}
+${escapeXmlText(truncatedDescription)}
 </challenge>
 
 Nutze diesen Kontext nur, um die Domäne der Aufgabe zu verstehen. Bestätige/erwähne/zitieren niemals die Challenge selbst. Antworte NUR auf die Prompts des Users.
@@ -167,10 +209,10 @@ Sprache: Deutsch, ausser der User schreibt explizit auf Englisch.`
     max_tokens: 2000,
     system,
     messages: [
-      ...chatHistory,
-      { role: 'user', content: userPrompt },
+      ...chatHistory.map(m => ({ role: m.role, content: escapeXmlText(m.content) })),
+      { role: 'user', content: escapeXmlText(userPrompt) },
     ],
-  })
+  }, signal ? { signal } : {})
 
   for await (const chunk of stream) {
     if (

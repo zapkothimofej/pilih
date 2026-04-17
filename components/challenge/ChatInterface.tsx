@@ -5,6 +5,7 @@ import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { toast } from 'sonner'
 import JudgeFeedbackPopup from './JudgeFeedbackPopup'
 import DifficultyRating from './DifficultyRating'
 import { SendIcon, BotIcon, CheckIcon, CloseIcon } from '@/components/ui/icons'
@@ -43,7 +44,13 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
   const [attempts, setAttempts] = useState(previousAttempts.length)
   const bottomRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const isMountedRef = useRef(true)
+
+  useEffect(() => {
+    return () => { isMountedRef.current = false }
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -54,7 +61,10 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
   }, [isStreaming, showRating])
 
   // Stop streaming cleanly if component unmounts mid-flight.
-  useEffect(() => () => abortRef.current?.abort(), [])
+  useEffect(() => () => {
+    abortRef.current?.abort()
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+  }, [])
 
   const sendPrompt = useCallback(async () => {
     if (!input.trim() || isStreaming) return
@@ -66,6 +76,12 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
 
     const controller = new AbortController()
     abortRef.current = controller
+
+    // Abort after 120s to prevent infinite spinner on hung requests
+    timeoutRef.current = setTimeout(() => {
+      controller.abort()
+      if (isMountedRef.current) toast.error('Zeitüberschreitung. Bitte erneut versuchen.')
+    }, 120_000)
 
     let assistantContent = ''
     setMessages((prev) => [...prev, { role: 'assistant', content: '' }])
@@ -149,31 +165,35 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
               setJudgeFeedback(judgeData)
             }
           } else if (data.type === 'done') {
+            if (timeoutRef.current) clearTimeout(timeoutRef.current)
             setIsStreaming(false)
           } else if (data.type === 'error') {
-            setMessages((prev) => [
-              ...prev.slice(0, -1),
-              { role: 'assistant', content: 'Fehler beim Laden der Antwort. Bitte versuche es erneut.' },
-            ])
+            if (timeoutRef.current) clearTimeout(timeoutRef.current)
+            toast.error(data.message ?? 'Fehler beim Laden der Antwort.')
+            if (!assistantContent) {
+              setMessages((prev) => prev.slice(0, -1))
+            }
             setIsStreaming(false)
           }
         }
       }
     } catch (err) {
-      const aborted = (err as { name?: string })?.name === 'AbortError'
+      const aborted = err instanceof Error && err.name === 'AbortError'
       const fallback = aborted
         ? 'Antwort abgebrochen.'
         : 'Fehler beim Laden der Antwort. Bitte versuche es erneut.'
-      setMessages((prev) => [
-        ...prev.slice(0, -1),
-        {
-          role: 'assistant',
-          content: assistantContent.length > 0 ? assistantContent : fallback,
-        },
-      ])
-      setIsStreaming(false)
+      if (isMountedRef.current) {
+        setMessages((prev) => [
+          ...prev.slice(0, -1),
+          {
+            role: 'assistant',
+            content: assistantContent.length > 0 ? assistantContent : fallback,
+          },
+        ])
+        setIsStreaming(false)
+      }
     } finally {
-      abortRef.current = null
+      if (isMountedRef.current) abortRef.current = null
     }
   }, [input, isStreaming, challengeId, sessionId, messages])
 
@@ -183,13 +203,25 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
 
   async function handleRate(rating: DiffRating) {
     setRatingLoading(true)
-    const res = await fetch(`/api/challenges/${challengeId}/abschliessen`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, difficultyRating: rating }),
-    })
-    const data = await res.json() as { xp: number }
-    onComplete(rating, data.xp)
+    try {
+      const res = await fetch(`/api/challenges/${challengeId}/abschliessen`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, difficultyRating: rating }),
+      })
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null)
+        const msg = (errJson as { error?: string } | null)?.error ?? 'Abschließen fehlgeschlagen. Bitte erneut versuchen.'
+        toast.error(msg)
+        return
+      }
+      const data = await res.json() as { xp: number }
+      onComplete(rating, data.xp)
+    } catch {
+      toast.error('Netzwerkfehler beim Abschließen. Bitte erneut versuchen.')
+    } finally {
+      setRatingLoading(false)
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -202,7 +234,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
   return (
     <div className="flex flex-col">
       {/* Messages */}
-      <div className="space-y-4 pb-4 min-h-[280px] max-h-[460px] overflow-y-auto">
+      <div role="log" aria-live="polite" aria-label="Chat-Verlauf" className="space-y-4 pb-4 min-h-[280px] max-h-[460px] overflow-y-auto">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-10 gap-2">
             <div
@@ -330,6 +362,8 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
               placeholder="Schreibe deinen Prompt… (Enter zum Senden)"
               rows={2}
               disabled={isStreaming}
+              aria-label="Prompt eingeben"
+              aria-describedby="chat-input-hint"
               className="flex-1 rounded-xl px-4 py-3 text-sm placeholder-opacity-50 resize-none outline-none transition-colors disabled:opacity-40"
               style={{
                 background: 'var(--bg-elevated)',
@@ -365,7 +399,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
               </button>
             )}
           </div>
-          <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
+          <p id="chat-input-hint" className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
             Shift+Enter für Zeilenumbruch
           </p>
         </div>

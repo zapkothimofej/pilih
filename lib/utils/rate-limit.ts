@@ -4,8 +4,18 @@ interface RateLimitEntry {
 }
 
 // In-memory store — resets on server restart / per instance
-// For multi-instance production deployments, replace with Redis
+// TODO: Migrate to Postgres-backed RateLimit table for multi-instance deploys
 const store = new Map<string, RateLimitEntry>()
+
+const MAX_STORE_SIZE = 10_000
+
+// Clean up expired entries every 5 minutes to prevent unbounded memory growth
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, entry] of store) {
+    if (now > entry.resetAt) store.delete(key)
+  }
+}, 5 * 60 * 1000).unref?.()
 
 export interface RateLimitResult {
   allowed: boolean
@@ -22,6 +32,11 @@ export function rateLimit(
   const entry = store.get(key)
 
   if (!entry || now > entry.resetAt) {
+    // Evict oldest entry when store is full
+    if (store.size >= MAX_STORE_SIZE) {
+      const oldest = store.keys().next().value
+      if (oldest) store.delete(oldest)
+    }
     const resetAt = now + windowMs
     store.set(key, { count: 1, resetAt })
     return { allowed: true, remaining: limit - 1, resetAt }

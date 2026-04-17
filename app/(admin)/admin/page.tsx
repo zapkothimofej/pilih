@@ -11,8 +11,10 @@ export default async function AdminPage() {
     redirect('/dashboard')
   }
 
+  if (user.role === 'COMPANY_ADMIN' && !user.companyId) redirect('/dashboard')
+
   const where = user.role === 'COMPANY_ADMIN'
-    ? { companyId: user.companyId ?? undefined, role: 'PARTICIPANT' as const }
+    ? { companyId: user.companyId!, role: 'PARTICIPANT' as const }
     : { role: 'PARTICIPANT' as const }
 
   const participants = await prisma.user.findMany({
