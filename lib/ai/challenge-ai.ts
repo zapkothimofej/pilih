@@ -178,7 +178,9 @@ export async function* streamChallengeResponse(
   userPrompt: string,
   signal?: AbortSignal
 ): AsyncGenerator<string> {
-  const truncatedDescription = challengeDescription.slice(0, 500)
+  // Schema permits up to 800 chars; match that so we don't silently clip
+  // domain context out of the assistant's awareness.
+  const truncatedDescription = challengeDescription.slice(0, 800)
 
   const system = `Du bist das LLM, an das der User seinen Prompt richtet. Du simulierst ein neutrales, leistungsfähiges Arbeits-LLM (vergleichbar mit Claude, ChatGPT oder Gemini).
 

@@ -14,5 +14,5 @@ export type AttemptStreamEvent =
       shouldShowPopup: boolean
       attemptNumber: number
     }
-  | { type: 'done'; attemptNumber: number }
+  | { type: 'done' }
   | { type: 'error'; message: string; partialResponse?: string }
