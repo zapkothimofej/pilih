@@ -1,5 +1,6 @@
 import { headers } from 'next/headers'
 import { Webhook } from 'svix'
+import { Prisma } from '@/app/generated/prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { logError } from '@/lib/utils/log'
 
@@ -42,33 +43,32 @@ export async function POST(req: Request) {
     return new Response('Webhook-Verifikation fehlgeschlagen', { status: 400 })
   }
 
-  // Idempotency: skip already-processed webhooks
+  // Idempotency + work in a single transaction so a failed upsert leaves
+  // the ProcessedWebhook row out and Svix can retry. If the svix row
+  // already exists (P2002), the event was handled before → 200.
   try {
-    await prisma.processedWebhook.create({ data: { svixId } })
+    await prisma.$transaction(async (tx) => {
+      await tx.processedWebhook.create({ data: { svixId } })
+
+      if (event.type === 'user.created' || event.type === 'user.updated') {
+        const { id, email_addresses, first_name, last_name } = event.data
+        const email = email_addresses[0]?.email_address ?? ''
+        const name = `${first_name ?? ''} ${last_name ?? ''}`.trim()
+        await tx.user.upsert({
+          where: { clerkId: id },
+          update: { email, name },
+          create: { clerkId: id, email, name },
+        })
+      } else if (event.type === 'user.deleted') {
+        await tx.user.deleteMany({ where: { clerkId: event.data.id } })
+      }
+    })
   } catch (err: unknown) {
-    if ((err as { code?: string })?.code === 'P2002') {
-      // Already processed — return 200 to prevent Svix retry
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
       return new Response('OK', { status: 200 })
     }
-    logError('webhook', 'Failed to record processed webhook', err)
-    throw err
-  }
-
-  if (event.type === 'user.created' || event.type === 'user.updated') {
-    const { id, email_addresses, first_name, last_name } = event.data
-    const email = email_addresses[0]?.email_address ?? ''
-    const name = `${first_name ?? ''} ${last_name ?? ''}`.trim()
-
-    await prisma.user.upsert({
-      where: { clerkId: id },
-      update: { email, name },
-      create: { clerkId: id, email, name },
-    })
-  }
-
-  if (event.type === 'user.deleted') {
-    const { id } = event.data
-    await prisma.user.deleteMany({ where: { clerkId: id } })
+    logError('webhook', 'Handler failed, letting Svix retry', err)
+    return new Response('Webhook-Verarbeitung fehlgeschlagen', { status: 500 })
   }
 
   return new Response('OK', { status: 200 })
