@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getNextDifficulty, selectDailyChallenges } from '../../lib/adaptive/difficulty'
+import { getNextDifficulty, getNextDifficultyWithScore, selectDailyChallenges } from '../../lib/adaptive/difficulty'
 
 describe('getNextDifficulty', () => {
   it('increases difficulty on TOO_EASY', () => {
@@ -65,5 +65,79 @@ describe('selectDailyChallenges', () => {
     const result = selectDailyChallenges(challenges, 2, 3)
     const ids = result.map(c => c.id)
     expect(new Set(ids).size).toBe(ids.length)
+  })
+})
+
+describe('getNextDifficultyWithScore', () => {
+  // 1. avgScore null → falls back to getNextDifficulty
+  it('falls back to getNextDifficulty on null avgScore — TOO_EASY', () => {
+    expect(getNextDifficultyWithScore(2, 'TOO_EASY', null)).toBe(getNextDifficulty(2, 'TOO_EASY'))
+  })
+
+  it('falls back to getNextDifficulty on null avgScore — TOO_HARD', () => {
+    expect(getNextDifficultyWithScore(3, 'TOO_HARD', null)).toBe(getNextDifficulty(3, 'TOO_HARD'))
+  })
+
+  it('falls back to getNextDifficulty on null avgScore — JUST_RIGHT', () => {
+    expect(getNextDifficultyWithScore(3, 'JUST_RIGHT', null)).toBe(getNextDifficulty(3, 'JUST_RIGHT'))
+  })
+
+  // 2. TOO_EASY + avgScore >= 6 → increases
+  it('TOO_EASY with avgScore >= 6 increases difficulty', () => {
+    expect(getNextDifficultyWithScore(3, 'TOO_EASY', 7)).toBe(4)
+  })
+
+  // 3. TOO_EASY + avgScore < 6 → keeps current
+  it('TOO_EASY with avgScore < 6 keeps difficulty unchanged', () => {
+    expect(getNextDifficultyWithScore(3, 'TOO_EASY', 5)).toBe(3)
+  })
+
+  // 4. TOO_HARD → decreases regardless of avgScore
+  it('TOO_HARD with high avgScore (9) still decreases difficulty', () => {
+    expect(getNextDifficultyWithScore(3, 'TOO_HARD', 9)).toBe(2)
+  })
+
+  it('TOO_HARD with low avgScore (2) decreases difficulty', () => {
+    expect(getNextDifficultyWithScore(3, 'TOO_HARD', 2)).toBe(2)
+  })
+
+  // 5. JUST_RIGHT + avgScore >= 8 → increases
+  it('JUST_RIGHT with avgScore >= 8 increases difficulty', () => {
+    expect(getNextDifficultyWithScore(3, 'JUST_RIGHT', 8)).toBe(4)
+  })
+
+  // 6. JUST_RIGHT + avgScore <= 4 → decreases
+  it('JUST_RIGHT with avgScore <= 4 decreases difficulty', () => {
+    expect(getNextDifficultyWithScore(3, 'JUST_RIGHT', 4)).toBe(2)
+  })
+
+  // 7. JUST_RIGHT + avgScore = 5 (middle) → stays
+  it('JUST_RIGHT with avgScore = 5 keeps difficulty unchanged', () => {
+    expect(getNextDifficultyWithScore(3, 'JUST_RIGHT', 5)).toBe(3)
+  })
+
+  // 8. JUST_RIGHT + avgScore = 7 (middle) → stays
+  it('JUST_RIGHT with avgScore = 7 keeps difficulty unchanged', () => {
+    expect(getNextDifficultyWithScore(3, 'JUST_RIGHT', 7)).toBe(3)
+  })
+
+  // 9. Clamp: current=5, TOO_EASY, avgScore=9 → stays at 5 (max)
+  it('clamps to max 5 when already at top and TOO_EASY with high avgScore', () => {
+    expect(getNextDifficultyWithScore(5, 'TOO_EASY', 9)).toBe(5)
+  })
+
+  // 10. Clamp: current=1, TOO_HARD, avgScore=5 → stays at 1 (min)
+  it('clamps to min 1 when already at bottom and TOO_HARD', () => {
+    expect(getNextDifficultyWithScore(1, 'TOO_HARD', 5)).toBe(1)
+  })
+
+  // 11. Boundary: avgScore=6, TOO_EASY → increases (exactly at threshold)
+  it('TOO_EASY with avgScore exactly 6 increases difficulty (boundary)', () => {
+    expect(getNextDifficultyWithScore(3, 'TOO_EASY', 6)).toBe(4)
+  })
+
+  // 12. Boundary: avgScore=5.9, TOO_EASY → keeps current (just below threshold)
+  it('TOO_EASY with avgScore 5.9 keeps difficulty unchanged (just below boundary)', () => {
+    expect(getNextDifficultyWithScore(3, 'TOO_EASY', 5.9)).toBe(3)
   })
 })
