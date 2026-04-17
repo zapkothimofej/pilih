@@ -12,17 +12,28 @@ export async function POST() {
     return NextResponse.json({ error: 'Abschluss noch nicht genehmigt' }, { status: 400 })
   }
 
-  // LinkedIn Share URL (Deep Link mit vorausgefülltem Text)
-  const certText = encodeURIComponent(`Ich habe meinen KI-Führerschein abgeschlossen! 🔥🏆 21 Tage Prompt Engineering Training mit PILIH — "Prompt it like it's hot". #KI #PromptEngineering #PILIH #AILiteracy`)
-  const linkedInShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://pilih.app/zertifikat/' + user.id)}&summary=${certText}`
+  // The share URL points at the in-app zertifikat page, which runs auth and
+  // redirects when a visitor isn't the recipient. Avoids fictitious domains
+  // or unauthenticated deep-links to personal data.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const certText = encodeURIComponent(
+    `Ich habe meinen KI-Führerschein abgeschlossen! 🔥🏆 21 Tage Prompt Engineering Training mit PILIH — "Prompt it like it's hot". #KI #PromptEngineering #PILIH #AILiteracy`
+  )
+  const linkedInShareUrl =
+    `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`${appUrl}/zertifikat`)}&summary=${certText}`
+
+  // Both routes really exist: /api/zertifikat/pdf streams the PDF and the
+  // badge is served as a data URI by the share preview, so we just store
+  // the canonical PDF endpoint for both.
+  const pdfUrl = '/api/zertifikat/pdf'
 
   const certificate = await prisma.certificate.upsert({
     where: { userId: user.id },
-    update: { linkedInShareUrl, issuedAt: new Date() },
+    update: { linkedInShareUrl, pdfUrl, badgeUrl: pdfUrl, issuedAt: new Date() },
     create: {
       userId: user.id,
-      pdfUrl: `/api/zertifikat/${user.id}/pdf`,
-      badgeUrl: `/api/zertifikat/${user.id}/badge`,
+      pdfUrl,
+      badgeUrl: pdfUrl,
       linkedInShareUrl,
     },
   })
