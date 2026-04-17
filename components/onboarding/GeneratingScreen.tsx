@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { SpinnerIcon } from '@/components/ui/icons'
 
 const MESSAGES = [
-  'Analysiere dein Berufsprofil...',
-  'Entwickle personalisierte Challenges...',
-  'Optimiere Schwierigkeitsgrade...',
-  'Füge Prompting-Tipps hinzu...',
-  'Fast fertig...',
+  'Analysiere dein Berufsprofil…',
+  'Entwickle personalisierte Challenges…',
+  'Optimiere Schwierigkeitsgrade…',
+  'Füge Prompting-Tipps hinzu…',
+  'Fast fertig…',
 ]
 
 export default function GeneratingScreen() {
@@ -17,12 +18,10 @@ export default function GeneratingScreen() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    // Nachrichten durchwechseln
     const interval = setInterval(() => {
       setMsgIndex((i) => (i + 1) % MESSAGES.length)
     }, 2500)
 
-    // API aufrufen
     fetch('/api/challenges/generate', { method: 'POST' })
       .then((res) => {
         if (!res.ok) throw new Error('Generierung fehlgeschlagen')
@@ -43,11 +42,12 @@ export default function GeneratingScreen() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center">
       {error ? (
-        <div className="space-y-4">
-          <p className="text-red-400">{error}</p>
+        <div className="space-y-5">
+          <p className="text-sm" style={{ color: 'var(--error)' }}>{error}</p>
           <button
             onClick={() => router.push('/onboarding')}
-            className="px-6 py-3 border border-zinc-600 text-zinc-300 rounded-lg hover:border-zinc-400 transition-colors"
+            className="px-6 py-2.5 rounded-xl text-sm border transition-colors"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
           >
             Zurück zum Onboarding
           </button>
@@ -55,36 +55,46 @@ export default function GeneratingScreen() {
       ) : (
         <div className="space-y-8">
           {/* Spinner */}
-          <div className="relative w-24 h-24 mx-auto">
-            <div className="absolute inset-0 rounded-full border-4 border-[#222]" />
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-orange-500 animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center text-3xl">🔥</div>
+          <div className="relative mx-auto flex items-center justify-center">
+            <SpinnerIcon size={56} className="animate-spin" style={{ color: 'var(--accent)' }} />
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-white">Deine Challenges werden erstellt</h2>
-            <p className="text-zinc-400 text-sm max-w-sm">
+            <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+              Deine Challenges werden erstellt
+            </h2>
+            <p className="text-sm max-w-xs" style={{ color: 'var(--text-secondary)' }}>
               Unsere KI analysiert dein Profil und erstellt 21 personalisierte Challenges für deinen Job.
             </p>
           </div>
 
-          <div className="h-6">
-            <p key={msgIndex} className="text-orange-400 text-sm animate-pulse">
+          <div className="h-5">
+            <p
+              key={msgIndex}
+              className="text-xs"
+              style={{ color: 'var(--accent)' }}
+            >
               {MESSAGES[msgIndex]}
             </p>
           </div>
 
-          {/* Fake Fortschrittsbalken */}
-          <div className="w-64 mx-auto">
-            <div className="h-1 bg-[#222] rounded-full overflow-hidden">
-              <div className="h-full bg-orange-500 rounded-full animate-[progress_12s_ease-in-out_forwards]" />
+          {/* Progress bar */}
+          <div className="w-56 mx-auto">
+            <div className="h-0.5 rounded-full overflow-hidden" style={{ background: 'var(--border-default)' }}>
+              <div
+                className="h-full rounded-full"
+                style={{
+                  background: 'var(--accent)',
+                  animation: 'generating-progress 12s ease-in-out forwards',
+                }}
+              />
             </div>
           </div>
         </div>
       )}
 
       <style jsx>{`
-        @keyframes progress {
+        @keyframes generating-progress {
           from { width: 0% }
           to { width: 95% }
         }

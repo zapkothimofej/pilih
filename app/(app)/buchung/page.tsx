@@ -13,11 +13,13 @@ export default async function BuchungPage() {
   })
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Coaching & Meetings</h1>
-        <p className="text-zinc-400 text-sm mt-1">
-          Buche ein Gruppen-Meeting oder ein persönliches 1:1-Coaching
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+          Coaching &amp; Meetings
+        </h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+          Buche ein Gruppen-Meeting oder ein persönliches 1:1-Coaching.
         </p>
       </div>
 

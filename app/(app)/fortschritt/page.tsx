@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 import { prisma } from '@/lib/db/prisma'
+import { FlameIcon, BoltIcon, BotIcon, CheckIcon } from '@/components/ui/icons'
 
 function calcStreak(sessions: { date: Date }[]) {
   const sorted = [...sessions].sort((a, b) => b.date.getTime() - a.date.getTime())
@@ -30,9 +31,10 @@ export default async function FortschrittPage() {
 
   const streak = calcStreak(sessions.map(s => ({ date: s.date })))
   const xp = sessions.reduce((acc, s) => acc + 100 + (s.selectedChallenge?.difficulty ?? 1 - 1) * 20, 0)
-  const avgScore = sessions.flatMap(s => s.attempts).reduce((acc, a, _, arr) => acc + a.judgeScore / arr.length, 0)
+  const avgScore = sessions.flatMap(s => s.attempts).reduce(
+    (acc, a, _, arr) => acc + a.judgeScore / arr.length, 0
+  )
 
-  // 21-Tage Kalender
   const days = Array.from({ length: 21 }, (_, i) => {
     const day = i + 1
     const session = sessions.find(s => s.dayNumber === day)
@@ -41,64 +43,103 @@ export default async function FortschrittPage() {
 
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Dein Fortschritt</h1>
-        <p className="text-zinc-400 text-sm mt-1">{sessions.length} von 21 Tagen abgeschlossen</p>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Dein Fortschritt</h1>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+          {sessions.length} von 21 Tagen abgeschlossen
+        </p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: '🔥 Streak', value: streak, unit: 'Tage' },
-          { label: '⚡ XP', value: xp, unit: 'Punkte' },
-          { label: '🤖 Ø Score', value: avgScore ? avgScore.toFixed(1) : '—', unit: '/10' },
+          { icon: <FlameIcon size={16} />, label: 'Streak', value: streak, unit: 'Tage' },
+          { icon: <BoltIcon size={16} />, label: 'XP', value: xp, unit: 'Punkte' },
+          { icon: <BotIcon size={16} />, label: 'Ø Score', value: avgScore ? avgScore.toFixed(1) : '—', unit: '/10' },
         ].map(stat => (
-          <div key={stat.label} className="bg-[#111] border border-[#222] rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-white">{stat.value}</div>
-            <div className="text-xs text-zinc-500 mt-0.5">{stat.unit}</div>
-            <div className="text-xs text-zinc-600 mt-1">{stat.label}</div>
+          <div
+            key={stat.label}
+            className="rounded-2xl border p-4 text-center"
+            style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
+          >
+            <div className="flex justify-center mb-2" style={{ color: 'var(--accent)' }}>
+              {stat.icon}
+            </div>
+            <div className="text-2xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+              {stat.value}
+            </div>
+            <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{stat.unit}</div>
           </div>
         ))}
       </div>
 
-      {/* 21-Tage Kalender */}
-      <div className="bg-[#111] border border-[#222] rounded-xl p-5">
-        <h2 className="text-sm font-semibold text-zinc-400 mb-4">21-Tage-Kalender</h2>
+      {/* 21-day calendar */}
+      <div
+        className="rounded-2xl border p-5"
+        style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
+      >
+        <h2
+          className="text-[11px] font-bold uppercase tracking-widest mb-4"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          21-Tage-Kalender
+        </h2>
         <div className="grid grid-cols-7 gap-2">
           {days.map(({ day, completed, session }) => (
             <div
               key={day}
               title={session?.selectedChallenge?.title ?? `Tag ${day}`}
-              className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-colors ${
-                completed
-                  ? 'bg-orange-500 text-white'
-                  : day === sessions.length + 1
-                  ? 'bg-orange-500/20 border-2 border-orange-500 text-orange-400'
-                  : 'bg-[#1a1a1a] text-zinc-600'
-              }`}
+              className="aspect-square rounded-xl flex items-center justify-center text-xs font-medium transition-colors"
+              style={completed
+                ? { background: 'var(--accent)', color: '#fff' }
+                : day === sessions.length + 1
+                ? { background: 'var(--accent-dim)', border: '1.5px solid var(--accent-border)', color: 'var(--accent)' }
+                : { background: 'var(--bg-elevated)', color: 'var(--text-muted)' }
+              }
             >
-              {completed ? '✓' : day}
+              {completed
+                ? <CheckIcon size={11} />
+                : <span className="tabular-nums">{day}</span>
+              }
             </div>
           ))}
         </div>
       </div>
 
-      {/* Challenge-History */}
+      {/* Challenge history */}
       {sessions.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-zinc-400">Abgeschlossene Challenges</h2>
+        <div className="space-y-2">
+          <h2
+            className="text-[11px] font-bold uppercase tracking-widest"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Abgeschlossene Challenges
+          </h2>
           {sessions.map(s => {
             const attempt = s.attempts[0]
             return (
-              <div key={s.id} className="bg-[#111] border border-[#222] rounded-xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs text-zinc-500">Tag {s.dayNumber}</div>
+              <div
+                key={s.id}
+                className="rounded-xl border px-4 py-3.5"
+                style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    Tag {s.dayNumber}
+                  </span>
                   {attempt && (
-                    <div className="text-xs font-medium text-purple-400">Score: {attempt.judgeScore}/10</div>
+                    <span className="text-[11px] font-medium tabular-nums" style={{ color: 'var(--accent)' }}>
+                      Score {attempt.judgeScore}/10
+                    </span>
                   )}
                 </div>
-                <div className="font-medium text-white text-sm">{s.selectedChallenge?.title}</div>
-                <div className="text-xs text-zinc-500 mt-0.5">{s.selectedChallenge?.category}</div>
+                <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+                  {s.selectedChallenge?.title}
+                </div>
+                <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  {s.selectedChallenge?.category}
+                </div>
               </div>
             )
           })}

@@ -96,7 +96,7 @@ model User {
 model OnboardingProfile {
   id               String    @id @default(cuid())
   userId           String    @unique
-  user             User      @relation(fields: [userId], references: [id])
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   companyName      String
   department       String
   jobTitle         String
@@ -111,7 +111,7 @@ model OnboardingProfile {
 model Challenge {
   id                String          @id @default(cuid())
   userId            String
-  user              User            @relation(fields: [userId], references: [id])
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   dayNumber         Int
   title             String
   description       String
@@ -127,24 +127,26 @@ model Challenge {
 model DailySession {
   id                  String            @id @default(cuid())
   userId              String
-  user                User              @relation(fields: [userId], references: [id])
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   dayNumber           Int
   date                DateTime
   status              SessionStatus     @default(PENDING)
   selectedChallengeId String?
-  selectedChallenge   Challenge?        @relation(fields: [selectedChallengeId], references: [id])
+  selectedChallenge   Challenge?        @relation(fields: [selectedChallengeId], references: [id], onDelete: SetNull)
   difficultyRating    DifficultyRating?
   attempts            PromptAttempt[]
   completedAt         DateTime?
   createdAt           DateTime          @default(now())
+
+  @@unique([userId, dayNumber])
 }
 
 model PromptAttempt {
   id            String       @id @default(cuid())
   sessionId     String
-  session       DailySession @relation(fields: [sessionId], references: [id])
+  session       DailySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   userId        String
-  user          User         @relation(fields: [userId], references: [id])
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userPrompt    String
   llmResponse   String
   judgeFeedback String
@@ -152,12 +154,14 @@ model PromptAttempt {
   improvements  String[]
   attemptNumber Int
   createdAt     DateTime     @default(now())
+
+  @@unique([sessionId, attemptNumber])
 }
 
 model FinalSubmission {
   id          String           @id @default(cuid())
   userId      String           @unique
-  user        User             @relation(fields: [userId], references: [id])
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   useCase1    Json
   useCase2    Json
   useCase3    Json
@@ -170,7 +174,7 @@ model FinalSubmission {
 model Certificate {
   id               String   @id @default(cuid())
   userId           String   @unique
-  user             User     @relation(fields: [userId], references: [id])
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   pdfUrl           String
   badgeUrl         String
   linkedInShareUrl String
@@ -180,7 +184,7 @@ model Certificate {
 model Booking {
   id          String        @id @default(cuid())
   userId      String
-  user        User          @relation(fields: [userId], references: [id])
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   type        BookingType
   scheduledAt DateTime
   meetingUrl  String

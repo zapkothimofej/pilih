@@ -24,13 +24,15 @@ describe('getNextDifficulty', () => {
 })
 
 describe('selectDailyChallenges', () => {
+  // The selector now keys on `currentDifficulty` (adaptive value). Mirror it
+  // to `difficulty` here so the existing assertions still map 1:1.
   const challenges = [
-    { id: 'a', difficulty: 1 },
-    { id: 'b', difficulty: 2 },
-    { id: 'c', difficulty: 2 },
-    { id: 'd', difficulty: 3 },
-    { id: 'e', difficulty: 4 },
-    { id: 'f', difficulty: 5 },
+    { id: 'a', difficulty: 1, currentDifficulty: 1 },
+    { id: 'b', difficulty: 2, currentDifficulty: 2 },
+    { id: 'c', difficulty: 2, currentDifficulty: 2 },
+    { id: 'd', difficulty: 3, currentDifficulty: 3 },
+    { id: 'e', difficulty: 4, currentDifficulty: 4 },
+    { id: 'f', difficulty: 5, currentDifficulty: 5 },
   ]
 
   it('returns exactly 3 challenges by default', () => {
@@ -54,7 +56,7 @@ describe('selectDailyChallenges', () => {
   })
 
   it('returns no more than available challenges', () => {
-    const small = [{ id: 'x', difficulty: 3 }]
+    const small = [{ id: 'x', difficulty: 3, currentDifficulty: 3 }]
     const result = selectDailyChallenges(small, 3, 3)
     expect(result).toHaveLength(1)
   })

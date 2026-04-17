@@ -2,14 +2,14 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 
 const styles = StyleSheet.create({
   page: {
-    backgroundColor: '#0f0f0f',
+    backgroundColor: '#18191d',
     padding: 60,
     fontFamily: 'Helvetica',
-    color: '#ffffff',
+    color: '#f0f0f4',
   },
   container: {
     flex: 1,
-    border: '1pt solid #f97316',
+    border: '1pt solid rgba(129,140,248,0.35)',
     borderRadius: 12,
     padding: 48,
     alignItems: 'center',
@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
   },
   academy: {
     fontSize: 9,
-    color: '#f97316',
+    color: '#818cf8',
     letterSpacing: 4,
     textTransform: 'uppercase',
     marginBottom: 8,
@@ -25,25 +25,25 @@ const styles = StyleSheet.create({
   divider: {
     width: 60,
     height: 1,
-    backgroundColor: '#f9731680',
+    backgroundColor: 'rgba(129,140,248,0.3)',
     marginBottom: 24,
   },
   subtitle: {
     fontSize: 11,
-    color: '#a1a1aa',
+    color: '#9496ae',
     marginBottom: 4,
     textAlign: 'center',
   },
   program: {
     fontSize: 16,
     fontFamily: 'Helvetica-Bold',
-    color: '#fb923c',
+    color: '#818cf8',
     marginBottom: 32,
     textAlign: 'center',
   },
   awardedLabel: {
     fontSize: 8,
-    color: '#52525b',
+    color: '#52556b',
     letterSpacing: 3,
     textTransform: 'uppercase',
     marginBottom: 8,
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 28,
     fontFamily: 'Helvetica-Bold',
-    color: '#ffffff',
+    color: '#f0f0f4',
     marginBottom: 32,
     textAlign: 'center',
   },
@@ -66,26 +66,26 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontFamily: 'Helvetica-Bold',
-    color: '#ffffff',
+    color: '#f0f0f4',
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 8,
-    color: '#52525b',
+    color: '#52556b',
   },
   dateLabel: {
     fontSize: 8,
-    color: '#3f3f46',
+    color: '#52556b',
     marginBottom: 4,
   },
   dateValue: {
     fontSize: 11,
-    color: '#a1a1aa',
+    color: '#9496ae',
     marginBottom: 24,
   },
   footer: {
     fontSize: 9,
-    color: '#f9731660',
+    color: 'rgba(129,140,248,0.45)',
   },
 })
 
@@ -133,7 +133,7 @@ export default function CertificatePdf({ userName, completedAt, avgScore }: Prop
           <Text style={styles.dateLabel}>Ausstellungsdatum</Text>
           <Text style={styles.dateValue}>{date}</Text>
 
-          <Text style={styles.footer}>Yesterday Academy — Prompt it like it's hot</Text>
+          <Text style={styles.footer}>Yesterday Academy — Prompt it like it&apos;s hot</Text>
         </View>
       </Page>
     </Document>

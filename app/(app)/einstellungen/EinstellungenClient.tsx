@@ -1,24 +1,22 @@
 'use client'
 
 import type { User, Booking } from '@/app/generated/prisma/client'
+import { CheckIcon } from '@/components/ui/icons'
 
 const TIER_INFO = {
   BASE: {
     label: 'Base',
-    price: '399€',
-    color: 'text-zinc-300',
+    price: '399 €',
     features: ['21-Tage Challenge Programm', 'KI-Feedback (Judge AI)', 'Zertifikat + LinkedIn Badge'],
   },
   PRO: {
     label: 'Pro',
-    price: '499€',
-    color: 'text-blue-400',
+    price: '499 €',
     features: ['Alles aus Base', 'Wöchentliches Gruppen-Meeting', 'Expert Feedback & Best Practices'],
   },
   PREMIUM: {
     label: 'Premium',
-    price: '999€',
-    color: 'text-purple-400',
+    price: '999 €',
     features: ['Alles aus Pro', 'Wöchentliches 1on1 Coaching', 'Persönlicher Lernplan'],
   },
 }
@@ -27,94 +25,176 @@ export default function EinstellungenClient({ user, bookings }: { user: User; bo
   const tierInfo = TIER_INFO[user.tier]
 
   return (
-    <div className="max-w-xl space-y-6">
-      <h1 className="text-2xl font-bold text-white">Einstellungen</h1>
+    <div className="max-w-xl space-y-5">
+      <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+        Einstellungen
+      </h1>
 
-      {/* Profil */}
-      <div className="bg-[#111] border border-[#222] rounded-xl p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-zinc-400">Profil</h2>
+      {/* Profile */}
+      <section
+        className="rounded-2xl border p-5 space-y-4"
+        style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
+      >
+        <h2
+          className="text-[11px] font-bold uppercase tracking-widest"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Profil
+        </h2>
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-xl">
+          <div
+            className="w-11 h-11 rounded-xl border flex items-center justify-center text-base font-bold"
+            style={{
+              background: 'var(--accent-dim)',
+              borderColor: 'var(--accent-border)',
+              color: 'var(--accent)',
+            }}
+          >
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div className="font-semibold text-white">{user.name}</div>
-            <div className="text-sm text-zinc-500">{user.email}</div>
+            <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+              {user.name}
+            </div>
+            <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              {user.email}
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Aktueller Tier */}
-      <div className="bg-[#111] border border-[#222] rounded-xl p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-zinc-400">Dein Paket</h2>
-        <div className={`text-2xl font-bold ${tierInfo.color}`}>
-          {tierInfo.label} <span className="text-lg text-zinc-500">{tierInfo.price}/Person</span>
+      {/* Package */}
+      <section
+        className="rounded-2xl border p-5 space-y-4"
+        style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
+      >
+        <h2
+          className="text-[11px] font-bold uppercase tracking-widest"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Dein Paket
+        </h2>
+
+        <div className="flex items-baseline gap-2">
+          <span className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            {tierInfo.label}
+          </span>
+          <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            {tierInfo.price} / Person
+          </span>
         </div>
-        <ul className="space-y-1.5">
+
+        <ul className="space-y-2">
           {tierInfo.features.map(f => (
-            <li key={f} className="flex gap-2 text-sm text-zinc-300">
-              <span className="text-green-400">✓</span> {f}
+            <li key={f} className="flex items-center gap-2 text-sm">
+              <span style={{ color: 'var(--success)' }}>
+                <CheckIcon size={13} />
+              </span>
+              <span style={{ color: 'var(--text-secondary)' }}>{f}</span>
             </li>
           ))}
         </ul>
 
         {user.tier === 'BASE' && (
-          <div className="pt-2 border-t border-[#222]">
-            <p className="text-xs text-zinc-500 mb-2">Upgrade für wöchentliche Expert Sessions:</p>
+          <div className="pt-3 border-t space-y-3" style={{ borderColor: 'var(--border-subtle)' }}>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              Upgrade für wöchentliche Expert Sessions:
+            </p>
             <div className="grid grid-cols-2 gap-2">
-              <div className="p-3 rounded-lg border border-blue-500/30 bg-blue-500/5 text-center">
-                <div className="font-bold text-blue-400">Pro</div>
-                <div className="text-xs text-zinc-400">499€ · Gruppen-Meeting</div>
+              <div
+                className="p-3 rounded-xl border text-center"
+                style={{ background: 'rgba(99,179,237,0.06)', borderColor: 'rgba(99,179,237,0.2)' }}
+              >
+                <div className="font-bold text-sm" style={{ color: '#63b3ed' }}>Pro</div>
+                <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>499 € · Gruppen</div>
               </div>
-              <div className="p-3 rounded-lg border border-purple-500/30 bg-purple-500/5 text-center">
-                <div className="font-bold text-purple-400">Premium</div>
-                <div className="text-xs text-zinc-400">999€ · 1on1 Coaching</div>
+              <div
+                className="p-3 rounded-xl border text-center"
+                style={{ background: 'var(--accent-dim)', borderColor: 'var(--accent-border)' }}
+              >
+                <div className="font-bold text-sm" style={{ color: 'var(--accent)' }}>Premium</div>
+                <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>999 € · 1on1</div>
               </div>
             </div>
-            <p className="text-xs text-zinc-600 mt-2">
-              Kontaktiere uns für ein Upgrade: <span className="text-orange-400">hallo@yesterday.academy</span>
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              Upgrade anfragen:{' '}
+              <a
+                href="mailto:hallo@yesterday.academy"
+                className="underline"
+                style={{ color: 'var(--accent)' }}
+              >
+                hallo@yesterday.academy
+              </a>
             </p>
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Buchungen (Pro/Premium) */}
+      {/* Bookings (Pro / Premium) */}
       {(user.tier === 'PRO' || user.tier === 'PREMIUM') && (
-        <div className="bg-[#111] border border-[#222] rounded-xl p-5 space-y-3">
+        <section
+          className="rounded-2xl border p-5 space-y-3"
+          style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
+        >
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-400">Deine Meetings</h2>
-            <span className="text-xs text-zinc-600">{user.tier === 'PRO' ? 'Gruppen-Meetings' : '1on1 Coaching'}</span>
+            <h2
+              className="text-[11px] font-bold uppercase tracking-widest"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Deine Meetings
+            </h2>
+            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              {user.tier === 'PRO' ? 'Gruppen-Meetings' : '1on1 Coaching'}
+            </span>
           </div>
 
           {bookings.length === 0 ? (
-            <div className="text-sm text-zinc-500">
-              Noch keine Meetings gebucht.{' '}
-              <a href="mailto:hallo@yesterday.academy" className="text-orange-400 hover:underline">
-                Termin anfragen →
+            <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Noch keine Meetings.{' '}
+              <a
+                href="mailto:hallo@yesterday.academy"
+                className="underline"
+                style={{ color: 'var(--accent)' }}
+              >
+                Termin anfragen
               </a>
             </div>
           ) : (
             <div className="space-y-2">
               {bookings.map(b => (
-                <div key={b.id} className="flex items-center justify-between text-sm">
+                <div
+                  key={b.id}
+                  className="flex items-center justify-between text-sm py-1.5"
+                >
                   <div>
-                    <div className="text-white">{b.type === 'GROUP_MEETING' ? 'Gruppen-Meeting' : '1on1 Coaching'}</div>
-                    <div className="text-xs text-zinc-500">
+                    <div className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {b.type === 'GROUP_MEETING' ? 'Gruppen-Meeting' : '1on1 Coaching'}
+                    </div>
+                    <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                       {new Date(b.scheduledAt).toLocaleDateString('de-DE')}
                     </div>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    b.status === 'UPCOMING' ? 'bg-orange-500/20 text-orange-400' :
-                    b.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
-                    'bg-zinc-800 text-zinc-500'
-                  }`}>
-                    {b.status === 'UPCOMING' ? 'Bevorstehend' : b.status === 'COMPLETED' ? 'Abgeschlossen' : 'Storniert'}
+                  <span
+                    className="text-[11px] px-2.5 py-1 rounded-full font-medium"
+                    style={
+                      b.status === 'UPCOMING'
+                        ? { background: 'var(--accent-dim)', color: 'var(--accent)' }
+                        : b.status === 'COMPLETED'
+                        ? { background: 'var(--success-dim)', color: 'var(--success)' }
+                        : { background: 'var(--bg-elevated)', color: 'var(--text-muted)' }
+                    }
+                  >
+                    {b.status === 'UPCOMING'
+                      ? 'Bevorstehend'
+                      : b.status === 'COMPLETED'
+                      ? 'Abgeschlossen'
+                      : 'Storniert'}
                   </span>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </section>
       )}
     </div>
   )

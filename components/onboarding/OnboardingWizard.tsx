@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import SpeechInput from './SpeechInput'
+import { CheckIcon, ArrowRightIcon, ArrowLeftIcon } from '@/components/ui/icons'
 
 type Step = 1 | 2 | 3
 
@@ -19,11 +20,13 @@ type FormData = {
 const AI_TOOLS = ['ChatGPT', 'Claude', 'Gemini', 'Copilot', 'Perplexity', 'Midjourney', 'Sonstiges']
 const FREQUENCIES = ['Täglich', 'Mehrmals pro Woche', 'Einmal pro Woche', 'Selten', 'Noch nie']
 
-const SKILL_LABELS = {
+const SKILL_LABELS: Record<FormData['aiSkillLevel'], { label: string; desc: string }> = {
   BEGINNER: { label: 'Einsteiger', desc: 'Ich habe KI kaum oder gar nicht genutzt' },
   INTERMEDIATE: { label: 'Fortgeschritten', desc: 'Ich nutze KI regelmäßig für einfache Aufgaben' },
   ADVANCED: { label: 'Erfahren', desc: 'Ich nutze KI täglich und kenne mich gut aus' },
 }
+
+const STEP_LABELS = ['Über dich', 'KI-Kenntnisstand', 'Arbeitsalltag']
 
 export default function OnboardingWizard() {
   const router = useRouter()
@@ -76,107 +79,105 @@ export default function OnboardingWizard() {
 
   return (
     <div className="max-w-xl mx-auto">
-      {/* Fortschrittsbalken */}
-      <div className="flex items-center gap-2 mb-10">
+      {/* Step indicator */}
+      <div className="flex items-center gap-0 mb-8">
         {([1, 2, 3] as Step[]).map((s) => (
-          <div key={s} className="flex items-center gap-2 flex-1">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-                s < step
-                  ? 'bg-orange-500 text-white'
+          <div key={s} className="flex items-center flex-1">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                style={s < step
+                  ? { background: 'var(--accent)', color: '#fff' }
                   : s === step
-                  ? 'bg-orange-500/20 border-2 border-orange-500 text-orange-400'
-                  : 'bg-[#222] text-zinc-600'
-              }`}
-            >
-              {s < step ? '✓' : s}
+                  ? { background: 'var(--accent-dim)', border: '1.5px solid var(--accent)', color: 'var(--accent)' }
+                  : { background: 'var(--bg-elevated)', border: '1.5px solid var(--border-default)', color: 'var(--text-muted)' }
+                }
+              >
+                {s < step ? <CheckIcon size={12} /> : s}
+              </div>
+              <span
+                className="text-xs hidden sm:block"
+                style={{ color: s === step ? 'var(--text-secondary)' : 'var(--text-muted)' }}
+              >
+                {STEP_LABELS[s - 1]}
+              </span>
             </div>
             {s < 3 && (
-              <div className={`flex-1 h-0.5 rounded ${s < step ? 'bg-orange-500' : 'bg-[#222]'}`} />
+              <div
+                className="flex-1 h-px mx-3"
+                style={{ background: s < step ? 'var(--accent)' : 'var(--border-default)' }}
+              />
             )}
           </div>
         ))}
       </div>
 
-      {/* Schritt 1 */}
+      {/* Step 1 */}
       {step === 1 && (
         <div className="space-y-5">
           <div>
-            <h2 className="text-2xl font-bold text-white">Wer bist du?</h2>
-            <p className="text-zinc-400 text-sm mt-1">Erzähl uns von dir und deiner Arbeit</p>
+            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Wer bist du?</h2>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+              Erzähl uns von dir und deiner Arbeit.
+            </p>
           </div>
 
-          <Input
-            label="Firma"
-            placeholder="z.B. ADN Distribution"
-            value={form.companyName}
-            onChange={(v) => set('companyName', v)}
-          />
-          <Input
-            label="Abteilung"
-            placeholder="z.B. Marketing, Vertrieb, IT..."
-            value={form.department}
-            onChange={(v) => set('department', v)}
-          />
-          <Input
-            label="Berufsbezeichnung"
-            placeholder="z.B. Marketing Manager"
-            value={form.jobTitle}
-            onChange={(v) => set('jobTitle', v)}
-          />
+          <FormInput label="Firma" placeholder="z.B. ADN Distribution" value={form.companyName} onChange={(v) => set('companyName', v)} />
+          <FormInput label="Abteilung" placeholder="z.B. Marketing, Vertrieb, IT…" value={form.department} onChange={(v) => set('department', v)} />
+          <FormInput label="Berufsbezeichnung" placeholder="z.B. Marketing Manager" value={form.jobTitle} onChange={(v) => set('jobTitle', v)} />
 
-          <button
-            onClick={() => setStep(2)}
-            disabled={!canNext1}
-            className="w-full py-3 bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
-          >
-            Weiter →
-          </button>
+          <PrimaryButton onClick={() => setStep(2)} disabled={!canNext1}>
+            Weiter <ArrowRightIcon size={14} />
+          </PrimaryButton>
         </div>
       )}
 
-      {/* Schritt 2 */}
+      {/* Step 2 */}
       {step === 2 && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-2xl font-bold text-white">Dein KI-Kenntnisstand</h2>
-            <p className="text-zinc-400 text-sm mt-1">Ehrlich — kein Level ist falsch!</p>
+            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Dein KI-Kenntnisstand</h2>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Ehrlich — kein Level ist falsch.</p>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-zinc-400">Wie gut kennst du dich mit KI aus?</label>
+            <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+              Wie gut kennst du dich mit KI aus?
+            </label>
             {(Object.entries(SKILL_LABELS) as [FormData['aiSkillLevel'], { label: string; desc: string }][]).map(
               ([key, { label, desc }]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => set('aiSkillLevel', key)}
-                  className={`w-full text-left p-4 rounded-lg border transition-all ${
-                    form.aiSkillLevel === key
-                      ? 'border-orange-500 bg-orange-500/10 text-white'
-                      : 'border-[#333] bg-[#111] text-zinc-400 hover:border-[#444] hover:text-white'
-                  }`}
+                  className="w-full text-left px-4 py-3.5 rounded-xl border transition-all"
+                  style={form.aiSkillLevel === key
+                    ? { background: 'var(--accent-dim)', borderColor: 'var(--accent-border)', color: 'var(--text-primary)' }
+                    : { background: 'var(--bg-surface)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }
+                  }
                 >
                   <div className="font-semibold text-sm">{label}</div>
-                  <div className="text-xs mt-0.5 opacity-70">{desc}</div>
+                  <div className="text-xs mt-0.5 opacity-75">{desc}</div>
                 </button>
               )
             )}
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-zinc-400">Welche KI-Tools nutzt du?</label>
+            <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+              Welche KI-Tools nutzt du?
+            </label>
             <div className="flex flex-wrap gap-2">
               {AI_TOOLS.map((tool) => (
                 <button
                   key={tool}
                   type="button"
                   onClick={() => toggleTool(tool)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                    form.aiToolsUsed.includes(tool)
-                      ? 'border-orange-500 bg-orange-500/10 text-orange-400'
-                      : 'border-[#333] bg-[#111] text-zinc-400 hover:border-[#444]'
-                  }`}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium border transition-all"
+                  style={form.aiToolsUsed.includes(tool)
+                    ? { background: 'var(--accent-dim)', borderColor: 'var(--accent-border)', color: 'var(--accent)' }
+                    : { background: 'var(--bg-elevated)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }
+                  }
                 >
                   {tool}
                 </button>
@@ -185,18 +186,20 @@ export default function OnboardingWizard() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-zinc-400">Wie oft nutzt du KI?</label>
-            <div className="grid grid-cols-1 gap-2">
+            <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+              Wie oft nutzt du KI?
+            </label>
+            <div className="space-y-2">
               {FREQUENCIES.map((freq) => (
                 <button
                   key={freq}
                   type="button"
                   onClick={() => set('aiFrequency', freq)}
-                  className={`py-2.5 px-4 rounded-lg border text-sm text-left transition-all ${
-                    form.aiFrequency === freq
-                      ? 'border-orange-500 bg-orange-500/10 text-white'
-                      : 'border-[#333] bg-[#111] text-zinc-400 hover:border-[#444]'
-                  }`}
+                  className="w-full py-2.5 px-4 rounded-xl border text-sm text-left transition-all"
+                  style={form.aiFrequency === freq
+                    ? { background: 'var(--accent-dim)', borderColor: 'var(--accent-border)', color: 'var(--text-primary)' }
+                    : { background: 'var(--bg-surface)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }
+                  }
                 >
                   {freq}
                 </button>
@@ -205,57 +208,44 @@ export default function OnboardingWizard() {
           </div>
 
           <div className="flex gap-3">
-            <button
-              onClick={() => setStep(1)}
-              className="px-5 py-3 border border-[#333] hover:border-[#444] text-zinc-400 hover:text-white rounded-lg transition-colors text-sm"
-            >
-              ← Zurück
-            </button>
-            <button
-              onClick={() => setStep(3)}
-              disabled={!canNext2}
-              className="flex-1 py-3 bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
-            >
-              Weiter →
-            </button>
+            <SecondaryButton onClick={() => setStep(1)}>
+              <ArrowLeftIcon size={14} /> Zurück
+            </SecondaryButton>
+            <PrimaryButton onClick={() => setStep(3)} disabled={!canNext2}>
+              Weiter <ArrowRightIcon size={14} />
+            </PrimaryButton>
           </div>
         </div>
       )}
 
-      {/* Schritt 3 */}
+      {/* Step 3 */}
       {step === 3 && (
         <div className="space-y-5">
           <div>
-            <h2 className="text-2xl font-bold text-white">Dein Arbeitsalltag</h2>
-            <p className="text-zinc-400 text-sm mt-1">
-              Beschreibe typische Aufgaben — je konkreter, desto besser werden deine Challenges!
+            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Dein Arbeitsalltag</h2>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+              Je konkreter, desto besser werden deine Challenges.
             </p>
           </div>
 
           <SpeechInput
             label="Was machst du typischerweise an einem Arbeitstag?"
-            placeholder="z.B. Ich erstelle wöchentlich Produktbeschreibungen für unseren Online-Shop, werte Verkaufszahlen aus und schreibe Angebote für Kunden..."
+            placeholder="z.B. Ich erstelle wöchentlich Produktbeschreibungen für unseren Online-Shop, werte Verkaufszahlen aus und schreibe Angebote für Kunden…"
             value={form.dailyDescription}
             onChange={(v) => set('dailyDescription', v)}
             rows={5}
           />
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-sm" style={{ color: 'var(--error)' }}>{error}</p>}
 
           <div className="flex gap-3">
-            <button
-              onClick={() => setStep(2)}
-              className="px-5 py-3 border border-[#333] hover:border-[#444] text-zinc-400 hover:text-white rounded-lg transition-colors text-sm"
-            >
-              ← Zurück
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={!canSubmit || loading}
-              className="flex-1 py-3 bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors"
-            >
-              {loading ? 'Wird gespeichert...' : 'KI-Challenges generieren 🚀'}
-            </button>
+            <SecondaryButton onClick={() => setStep(2)}>
+              <ArrowLeftIcon size={14} /> Zurück
+            </SecondaryButton>
+            <PrimaryButton onClick={handleSubmit} disabled={!canSubmit || loading}>
+              {loading ? 'Wird gespeichert…' : 'Challenges generieren'}
+              {!loading && <ArrowRightIcon size={14} />}
+            </PrimaryButton>
           </div>
         </div>
       )}
@@ -263,27 +253,57 @@ export default function OnboardingWizard() {
   )
 }
 
-function Input({
-  label,
-  placeholder,
-  value,
-  onChange,
-}: {
+function FormInput({ label, placeholder, value, onChange }: {
   label: string
   placeholder: string
   value: string
   onChange: (v: string) => void
 }) {
   return (
-    <div className="space-y-1">
-      <label className="text-sm text-zinc-400">{label}</label>
+    <div className="space-y-1.5">
+      <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{label}</label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-[#111] border border-[#333] hover:border-[#444] focus:border-orange-500 rounded-lg px-4 py-3 text-white placeholder-zinc-600 transition-colors outline-none text-sm"
+        className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-colors"
+        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+        onFocus={e => (e.target.style.borderColor = 'var(--accent-border)')}
+        onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
       />
     </div>
+  )
+}
+
+function PrimaryButton({ onClick, disabled, children }: {
+  onClick: () => void
+  disabled?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-35 disabled:cursor-not-allowed"
+      style={{ background: 'var(--accent)', color: '#fff' }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function SecondaryButton({ onClick, children }: {
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm border transition-colors"
+      style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+    >
+      {children}
+    </button>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { DocumentIcon, ShareIcon } from '@/components/ui/icons'
 
 interface Props {
   userName: string
@@ -25,7 +26,7 @@ export default function CertificateCard({ userName, completedAt, avgScore, linke
       awarded: 'Ausgestellt für',
       date: 'Ausstellungsdatum',
       score: 'Durchschnittlicher Prompt-Score',
-      footer: 'Yesterday Academy — Prompt it like it\'s hot 🔥',
+      footer: 'Yesterday Academy — Prompt it like it\'s hot',
     },
     en: {
       title: 'AI License',
@@ -34,95 +35,129 @@ export default function CertificateCard({ userName, completedAt, avgScore, linke
       awarded: 'Awarded to',
       date: 'Issue Date',
       score: 'Average Prompt Score',
-      footer: 'Yesterday Academy — Prompt it like it\'s hot 🔥',
+      footer: 'Yesterday Academy — Prompt it like it\'s hot',
     },
   }[lang]
 
   return (
     <div className="space-y-4">
-      {/* Lang-Toggle */}
+      {/* Language toggle */}
       <div className="flex justify-center gap-2">
         {(['de', 'en'] as const).map(l => (
           <button
             key={l}
             onClick={() => setLang(l)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              lang === l ? 'bg-orange-500 text-white' : 'bg-[#1a1a1a] text-zinc-400 hover:text-white'
-            }`}
+            className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
+            style={lang === l
+              ? { background: 'var(--accent)', color: '#fff' }
+              : { background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }
+            }
           >
-            {l === 'de' ? '🇩🇪 Deutsch' : '🇬🇧 English'}
+            {l === 'de' ? 'DE' : 'EN'}
           </button>
         ))}
       </div>
 
-      {/* Zertifikat */}
+      {/* Certificate */}
       <motion.div
         key={lang}
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         id="certificate"
-        className="relative bg-gradient-to-br from-[#0f0f0f] to-[#1a1a1a] border border-orange-500/30 rounded-2xl p-8 text-center overflow-hidden"
+        className="relative rounded-2xl border p-8 text-center overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)',
+          borderColor: 'var(--accent-border)',
+        }}
       >
-        {/* Hintergrund-Ornament */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-4 left-4 text-8xl">🔥</div>
-          <div className="absolute bottom-4 right-4 text-8xl rotate-180">🔥</div>
-        </div>
+        {/* Decorative corner marks */}
+        <div className="absolute top-4 left-4 w-6 h-6 border-l-2 border-t-2 rounded-tl" style={{ borderColor: 'var(--accent-border)' }} />
+        <div className="absolute top-4 right-4 w-6 h-6 border-r-2 border-t-2 rounded-tr" style={{ borderColor: 'var(--accent-border)' }} />
+        <div className="absolute bottom-4 left-4 w-6 h-6 border-l-2 border-b-2 rounded-bl" style={{ borderColor: 'var(--accent-border)' }} />
+        <div className="absolute bottom-4 right-4 w-6 h-6 border-r-2 border-b-2 rounded-br" style={{ borderColor: 'var(--accent-border)' }} />
 
         <div className="relative space-y-6">
+          {/* Issuer */}
           <div>
-            <div className="text-orange-500 text-xs font-bold uppercase tracking-[0.3em] mb-2">
+            <div
+              className="text-[10px] font-bold uppercase tracking-[0.35em] mb-2"
+              style={{ color: 'var(--accent)' }}
+            >
               Yesterday Academy
             </div>
-            <div className="w-16 h-0.5 bg-orange-500/50 mx-auto" />
+            <div className="w-12 h-px mx-auto" style={{ background: 'var(--accent-border)' }} />
           </div>
 
+          {/* Program */}
           <div className="space-y-1">
-            <div className="text-zinc-400 text-sm">{content.subtitle}</div>
-            <div className="text-xl font-bold text-orange-400">{content.program}</div>
+            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{content.subtitle}</div>
+            <div className="text-lg font-bold" style={{ color: 'var(--accent)' }}>{content.program}</div>
           </div>
 
+          {/* Recipient */}
           <div className="space-y-1">
-            <div className="text-zinc-500 text-xs uppercase tracking-widest">{content.awarded}</div>
-            <div className="text-3xl font-bold text-white">{userName}</div>
-          </div>
-
-          <div className="flex justify-center gap-8 text-center">
-            <div>
-              <div className="text-2xl font-bold text-white">{avgScore.toFixed(1)}/10</div>
-              <div className="text-xs text-zinc-500 mt-0.5">{content.score}</div>
+            <div
+              className="text-[10px] uppercase tracking-widest"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {content.awarded}
             </div>
-            <div>
-              <div className="text-2xl font-bold text-white">21/21</div>
-              <div className="text-xs text-zinc-500 mt-0.5">{lang === 'de' ? 'Challenges' : 'Challenges'}</div>
+            <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
+              {userName}
             </div>
           </div>
 
-          <div className="space-y-1">
-            <div className="text-zinc-600 text-xs">{content.date}</div>
-            <div className="text-zinc-300 text-sm">{date}</div>
+          {/* Stats */}
+          <div className="flex justify-center gap-10 text-center">
+            <div>
+              <div className="text-2xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                {avgScore.toFixed(1)}/10
+              </div>
+              <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                {content.score}
+              </div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                21/21
+              </div>
+              <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                Challenges
+              </div>
+            </div>
           </div>
 
-          <div className="text-orange-500/60 text-xs">{content.footer}</div>
+          {/* Date */}
+          <div className="space-y-0.5">
+            <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{content.date}</div>
+            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{date}</div>
+          </div>
+
+          {/* Footer */}
+          <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{content.footer}</div>
         </div>
       </motion.div>
 
-      {/* Aktionen */}
+      {/* Actions */}
       <div className="grid grid-cols-2 gap-3">
         <a
           href="/api/zertifikat/pdf"
           download
-          className="py-3 bg-[#111] border border-[#333] hover:border-[#444] text-zinc-300 hover:text-white rounded-xl text-sm font-medium transition-colors text-center"
+          className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium border transition-colors"
+          style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
         >
-          📄 PDF herunterladen
+          <DocumentIcon size={15} />
+          PDF herunterladen
         </a>
         <a
           href={linkedInShareUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="py-3 bg-[#0077b5]/20 border border-[#0077b5]/30 hover:bg-[#0077b5]/30 text-[#0077b5] rounded-xl text-sm font-medium text-center transition-colors"
+          className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium border transition-colors"
+          style={{ background: 'rgba(0,119,181,0.08)', borderColor: 'rgba(0,119,181,0.25)', color: '#0077b5' }}
         >
-          🔗 LinkedIn teilen
+          <ShareIcon size={15} />
+          LinkedIn teilen
         </a>
       </div>
     </div>

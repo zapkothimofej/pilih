@@ -1,12 +1,15 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { BotIcon, CloseIcon, CheckIcon, ArrowRightIcon } from '@/components/ui/icons'
 
 type JudgeFeedback = {
   score: number
   feedback: string
-  improvements: string[]
   strengths: string[]
+  improvements: string[]
+  techniqueFocus: string
 }
 
 interface JudgeFeedbackPopupProps {
@@ -14,7 +17,69 @@ interface JudgeFeedbackPopupProps {
   onClose: () => void
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])'
+
 export default function JudgeFeedbackPopup({ feedback, onClose }: JudgeFeedbackPopupProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const closeBtnRef = useRef<HTMLButtonElement>(null)
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null)
+
+  // Save + restore focus, focus close button on open, and trap Tab inside.
+  useEffect(() => {
+    if (!feedback) return
+
+    previouslyFocusedRef.current =
+      (typeof document !== 'undefined' && (document.activeElement as HTMLElement)) || null
+
+    // Focus the close button on the next frame so framer-motion has mounted it.
+    const raf = requestAnimationFrame(() => {
+      closeBtnRef.current?.focus()
+    })
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+        return
+      }
+      if (e.key !== 'Tab') return
+
+      const root = dialogRef.current
+      if (!root) return
+      const focusable = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+        (el) => !el.hasAttribute('disabled') && el.tabIndex !== -1
+      )
+      if (focusable.length === 0) {
+        e.preventDefault()
+        return
+      }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement as HTMLElement | null
+
+      if (e.shiftKey) {
+        if (active === first || !root.contains(active)) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else {
+        if (active === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      cancelAnimationFrame(raf)
+      document.removeEventListener('keydown', handleKeyDown)
+      // Restore focus to the element that had it before the popup opened.
+      previouslyFocusedRef.current?.focus?.()
+    }
+  }, [feedback, onClose])
+
   return (
     <AnimatePresence>
       {feedback && (
@@ -22,75 +87,136 @@ export default function JudgeFeedbackPopup({ feedback, onClose }: JudgeFeedbackP
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
           onClick={onClose}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 16 }}
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="judge-popup-title"
+            initial={{ opacity: 0, scale: 0.94, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 8 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm bg-[#111] border border-[#2a2a2a] rounded-2xl overflow-hidden"
+            exit={{ opacity: 0, scale: 0.96, y: 6 }}
+            transition={{ type: 'spring', damping: 30, stiffness: 340 }}
+            onClick={e => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl overflow-hidden border"
+            style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#1e1e1e]">
+            <div
+              className="flex items-center justify-between px-5 py-4 border-b"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-base">
-                  🤖
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
+                >
+                  <BotIcon size={15} />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-white">KI-Bewertung</div>
-                  <div className="text-xs text-zinc-500">Dein Prompt-Score</div>
+                  <div
+                    id="judge-popup-title"
+                    className="text-sm font-semibold"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    KI-Bewertung
+                  </div>
+                  <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    Dein Prompt-Score
+                  </div>
                 </div>
               </div>
               <button
+                ref={closeBtnRef}
                 onClick={onClose}
-                className="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                aria-label="Feedback schließen"
+                className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
+                style={{ color: 'var(--text-muted)' }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
+                <CloseIcon size={12} />
               </button>
             </div>
 
             {/* Score */}
-            <div className="flex items-center gap-5 px-5 py-5 border-b border-[#1e1e1e]">
+            <div
+              className="flex items-center gap-5 px-5 py-4 border-b"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
               <ScoreRing score={feedback.score} />
               <div>
-                <div className="text-3xl font-bold text-white leading-none">{feedback.score}<span className="text-lg text-zinc-500 font-normal">/10</span></div>
-                <div className="text-sm mt-1 font-medium" style={{ color: scoreColor(feedback.score) }}>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                    {feedback.score}
+                  </span>
+                  <span className="text-base" style={{ color: 'var(--text-muted)' }}>/10</span>
+                </div>
+                <div className="text-sm font-medium mt-0.5" style={{ color: scoreColor(feedback.score) }}>
                   {scoreLabel(feedback.score)}
                 </div>
               </div>
             </div>
 
-            {/* Scrollable content */}
-            <div className="overflow-y-auto max-h-64 px-5 py-4 space-y-4">
-              {/* Feedback text */}
-              <p className="text-sm text-zinc-300 leading-relaxed">{feedback.feedback}</p>
+            {/* Content */}
+            <div className="overflow-y-auto max-h-60 px-5 py-4 space-y-4">
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                {feedback.feedback}
+              </p>
 
-              {/* Stärken */}
+              {feedback.techniqueFocus && feedback.techniqueFocus.trim().length > 0 && (
+                <div
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border"
+                  style={{
+                    background: 'var(--accent-dim)',
+                    borderColor: 'var(--accent-border)',
+                    color: 'var(--accent)',
+                    lineHeight: 1,
+                  }}
+                >
+                  <span
+                    className="text-[9px] font-bold uppercase tracking-widest opacity-80"
+                  >
+                    Fokus-Technik
+                  </span>
+                  <span style={{ color: 'var(--text-primary)' }}>{feedback.techniqueFocus}</span>
+                </div>
+              )}
+
               {feedback.strengths?.length > 0 && (
                 <div className="space-y-1.5">
-                  <div className="text-[11px] font-semibold text-green-400 uppercase tracking-widest">Stärken</div>
+                  <div
+                    className="text-[10px] font-bold uppercase tracking-widest"
+                    style={{ color: 'var(--success)' }}
+                  >
+                    Stärken
+                  </div>
                   {feedback.strengths.map((s, i) => (
-                    <div key={i} className="flex gap-2 text-sm text-zinc-300">
-                      <span className="text-green-400 shrink-0 mt-0.5">✓</span>
-                      <span>{s}</span>
+                    <div key={i} className="flex gap-2 text-sm">
+                      <span className="shrink-0 mt-0.5" style={{ color: 'var(--success)' }}>
+                        <CheckIcon size={13} />
+                      </span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{s}</span>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Verbesserungen */}
               {feedback.improvements?.length > 0 && (
                 <div className="space-y-1.5">
-                  <div className="text-[11px] font-semibold text-orange-400 uppercase tracking-widest">Verbesserungen</div>
+                  <div
+                    className="text-[10px] font-bold uppercase tracking-widest"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    Verbesserungen
+                  </div>
                   {feedback.improvements.map((imp, i) => (
-                    <div key={i} className="flex gap-2 text-sm text-zinc-300">
-                      <span className="text-orange-400 shrink-0 mt-0.5">→</span>
-                      <span>{imp}</span>
+                    <div key={i} className="flex gap-2 text-sm">
+                      <span className="shrink-0 mt-0.5" style={{ color: 'var(--accent)' }}>
+                        <ArrowRightIcon size={13} />
+                      </span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{imp}</span>
                     </div>
                   ))}
                 </div>
@@ -98,12 +224,20 @@ export default function JudgeFeedbackPopup({ feedback, onClose }: JudgeFeedbackP
             </div>
 
             {/* Footer */}
-            <div className="px-5 pb-5 pt-3 border-t border-[#1e1e1e]">
+            <div
+              className="px-5 pb-5 pt-3 border-t"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
               <button
                 onClick={onClose}
-                className="w-full py-2.5 bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 rounded-xl text-sm font-medium transition-colors"
+                className="w-full py-2.5 rounded-xl text-sm font-medium border transition-colors"
+                style={{
+                  background: 'var(--accent-dim)',
+                  borderColor: 'var(--accent-border)',
+                  color: 'var(--accent)',
+                }}
               >
-                Verstanden ✓
+                Verstanden
               </button>
             </div>
           </motion.div>
@@ -122,9 +256,9 @@ function scoreLabel(score: number) {
 }
 
 function scoreColor(score: number) {
-  if (score >= 7) return '#a855f7'
-  if (score >= 5) return '#f97316'
-  return '#ef4444'
+  if (score >= 7) return 'var(--accent)'
+  if (score >= 5) return 'var(--warning)'
+  return 'var(--error)'
 }
 
 function ScoreRing({ score }: { score: number }) {
@@ -136,16 +270,20 @@ function ScoreRing({ score }: { score: number }) {
   return (
     <div className="relative w-16 h-16 shrink-0">
       <svg width="64" height="64" viewBox="0 0 64 64" className="rotate-[-90deg]">
-        <circle cx="32" cy="32" r={r} fill="none" stroke="#1e1e1e" strokeWidth="5" />
+        <circle cx="32" cy="32" r={r} fill="none" stroke="var(--border-default)" strokeWidth="5" />
         <circle
-          cx="32" cy="32" r={r} fill="none"
-          stroke={color} strokeWidth="5"
+          cx="32" cy="32" r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth="5"
           strokeDasharray={`${fill} ${c - fill}`}
           strokeLinecap="round"
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-lg font-bold text-white">{score}</span>
+        <span className="text-lg font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+          {score}
+        </span>
       </div>
     </div>
   )

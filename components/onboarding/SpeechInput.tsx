@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import { MicIcon } from '@/components/ui/icons'
 
 interface SpeechInputProps {
   value: string
@@ -10,13 +11,7 @@ interface SpeechInputProps {
   label?: string
 }
 
-export default function SpeechInput({
-  value,
-  onChange,
-  placeholder,
-  rows = 3,
-  label,
-}: SpeechInputProps) {
+export default function SpeechInput({ value, onChange, placeholder, rows = 3, label }: SpeechInputProps) {
   const [isListening, setIsListening] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
 
@@ -56,45 +51,45 @@ export default function SpeechInput({
   }, [])
 
   return (
-    <div className="space-y-1">
-      {label && <label className="text-sm text-zinc-400">{label}</label>}
+    <div className="space-y-1.5">
+      {label && (
+        <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+          {label}
+        </label>
+      )}
       <div className="relative">
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           rows={rows}
-          className="w-full bg-[#111] border border-[#333] hover:border-[#444] focus:border-orange-500 rounded-lg px-4 py-3 text-white placeholder-zinc-600 resize-none transition-colors outline-none pr-12 text-sm leading-relaxed"
+          className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none transition-colors pr-12 leading-relaxed"
+          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+          onFocus={e => (e.target.style.borderColor = 'var(--accent-border)')}
+          onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
         />
         <button
           type="button"
           onClick={isListening ? stopListening : startListening}
-          className={`absolute right-3 top-3 p-1.5 rounded-md transition-all ${
-            isListening
-              ? 'bg-red-500/20 text-red-400 animate-pulse'
-              : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700'
-          }`}
+          className="absolute right-3 top-3 p-1.5 rounded-lg transition-all"
           title={isListening ? 'Aufnahme stoppen' : 'Per Sprache eingeben'}
+          style={isListening
+            ? { background: 'rgba(248,113,113,0.12)', color: 'var(--error)' }
+            : { background: 'var(--bg-overlay)', color: 'var(--text-muted)' }
+          }
         >
-          <MicIcon />
+          <MicIcon size={14} />
         </button>
       </div>
       {isListening && (
-        <p className="text-xs text-red-400 flex items-center gap-1.5">
-          <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-          Aufnahme läuft...
+        <p className="text-[11px] flex items-center gap-1.5" style={{ color: 'var(--error)' }}>
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full animate-pulse"
+            style={{ background: 'var(--error)' }}
+          />
+          Aufnahme läuft…
         </p>
       )}
     </div>
-  )
-}
-
-function MicIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-      <line x1="12" x2="12" y1="19" y2="22" />
-    </svg>
   )
 }

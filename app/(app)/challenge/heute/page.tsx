@@ -33,13 +33,18 @@ export default async function ChallengeTodayPage() {
   const available = await prisma.challenge.findMany({
     where: { userId: user.id, status: 'UPCOMING' },
   })
-  const challenges = selectDailyChallenges(available, targetDifficulty, 3)
+
+  const poolEmpty = available.length === 0
+  const requested = Math.min(3, available.length)
+  const challenges = poolEmpty ? [] : selectDailyChallenges(available, targetDifficulty, requested)
 
   return (
     <ChallengeTodayClient
       day={nextDay}
       challenges={challenges}
       existingSessionId={todaySession?.id ?? null}
+      poolEmpty={poolEmpty}
+      poolSize={available.length}
     />
   )
 }

@@ -37,8 +37,14 @@ export async function POST(req: Request) {
   const { type, scheduledAt } = parsed.data
   const scheduled = new Date(scheduledAt)
 
-  if (scheduled < new Date()) {
-    return NextResponse.json({ error: 'Datum muss in der Zukunft liegen' }, { status: 400 })
+  // Enforce the same 60-minute buffer as the client. UTC vs local time is irrelevant here
+  // because getTime() is absolute milliseconds since epoch.
+  const MIN_LEAD_MS = 60 * 60_000
+  if (scheduled.getTime() < Date.now() + MIN_LEAD_MS) {
+    return NextResponse.json(
+      { error: 'Termin muss mindestens 60 Minuten in der Zukunft liegen' },
+      { status: 400 }
+    )
   }
 
   const booking = await prisma.booking.create({

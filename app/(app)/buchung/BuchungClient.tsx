@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Booking, BookingType } from '@/app/generated/prisma/client'
+import { CheckIcon, ArrowRightIcon, CalendarIcon } from '@/components/ui/icons'
 
 const BOOKING_TYPES: Array<{
   type: BookingType
   title: string
   description: string
   duration: string
-  icon: string
+  icon: React.ReactNode
 }> = [
   {
     type: 'GROUP_MEETING',
@@ -17,7 +18,7 @@ const BOOKING_TYPES: Array<{
     description:
       'Tausch dich mit anderen PILIH-Teilnehmern aus, teile deine Erkenntnisse und lerne von den Erfahrungen anderer.',
     duration: '60 Minuten',
-    icon: '👥',
+    icon: <GroupIcon />,
   },
   {
     type: 'ONE_ON_ONE',
@@ -25,7 +26,7 @@ const BOOKING_TYPES: Array<{
     description:
       'Persönliche Session mit einem Prompt-Engineering-Experten. Wir gehen gezielt auf deine Challenges und Use Cases ein.',
     duration: '45 Minuten',
-    icon: '🎯',
+    icon: <PersonIcon />,
   },
 ]
 
@@ -53,9 +54,12 @@ export default function BuchungClient({ bookings: initialBookings }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const minDate = new Date()
-  minDate.setMinutes(minDate.getMinutes() + 60) // at least 1h in the future
-  const minDateStr = minDate.toISOString().slice(0, 16)
+  // datetime-local expects LOCAL time, not UTC — build the string from local fields.
+  const d = new Date(Date.now() + 60 * 60_000)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const minDateStr =
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
 
   async function handleBook() {
     if (!selected || !scheduledAt) return
@@ -86,90 +90,136 @@ export default function BuchungClient({ bookings: initialBookings }: Props) {
 
   return (
     <div className="space-y-8">
-      {/* Booking type cards */}
+      {/* Type cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {BOOKING_TYPES.map(({ type, title, description, duration, icon }) => (
           <button
             key={type}
             onClick={() => { setSelected(type); setSuccess(false) }}
-            className={`text-left p-5 rounded-2xl border transition-all space-y-3 ${
-              selected === type
-                ? 'border-orange-500 bg-orange-500/10'
-                : 'border-[#222] bg-[#111] hover:border-[#333]'
-            }`}
+            className="text-left p-5 rounded-2xl border transition-all space-y-3"
+            style={selected === type
+              ? { background: 'var(--accent-dim)', borderColor: 'var(--accent-border)' }
+              : { background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }
+            }
           >
-            <div className="text-3xl">{icon}</div>
-            <div>
-              <div className="font-semibold text-white text-sm">{title}</div>
-              <div className="text-zinc-500 text-xs mt-0.5">{duration}</div>
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{
+                background: selected === type ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+                color: selected === type ? 'var(--accent)' : 'var(--text-muted)',
+              }}
+            >
+              {icon}
             </div>
-            <p className="text-zinc-400 text-xs leading-relaxed">{description}</p>
+            <div>
+              <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                {title}
+              </div>
+              <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                {duration}
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              {description}
+            </p>
             {selected === type && (
-              <div className="text-orange-400 text-xs font-medium">✓ Ausgewählt</div>
+              <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--accent)' }}>
+                <CheckIcon size={12} /> Ausgewählt
+              </div>
             )}
           </button>
         ))}
       </div>
 
-      {/* Date picker + confirm */}
+      {/* Date + confirm */}
       {selected && (
-        <div className="bg-[#111] border border-[#222] rounded-2xl p-5 space-y-4">
-          <div className="text-sm font-semibold text-white">Wunschtermin wählen</div>
+        <div
+          className="rounded-2xl border p-5 space-y-4"
+          style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
+        >
+          <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Wunschtermin wählen
+          </div>
           <input
             type="datetime-local"
             min={minDateStr}
             value={scheduledAt}
             onChange={e => setScheduledAt(e.target.value)}
-            className="w-full bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-orange-500 [color-scheme:dark]"
+            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none transition-colors [color-scheme:dark]"
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+            onFocus={e => (e.target.style.borderColor = 'var(--accent-border)')}
+            onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
           />
-          {error && <p className="text-red-400 text-xs">{error}</p>}
+          {error && (
+            <p className="text-xs" style={{ color: 'var(--error)' }}>{error}</p>
+          )}
           <button
             onClick={handleBook}
             disabled={!scheduledAt || loading}
-            className="w-full py-3 bg-orange-500 hover:bg-orange-400 disabled:bg-orange-500/30 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-35 disabled:cursor-not-allowed"
+            style={{ background: 'var(--accent)', color: '#fff' }}
           >
             {loading ? 'Wird gebucht…' : 'Jetzt buchen'}
+            {!loading && <ArrowRightIcon size={13} />}
           </button>
         </div>
       )}
 
       {/* Success */}
       {success && (
-        <div className="bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3 text-green-400 text-sm">
-          ✓ Buchung erfolgreich! Du erhältst eine Bestätigung per E-Mail.
+        <div
+          className="rounded-xl px-4 py-3 text-sm flex items-center gap-2 border"
+          style={{ background: 'var(--success-dim)', borderColor: 'var(--success-border)', color: 'var(--success)' }}
+        >
+          <CheckIcon size={14} />
+          Buchung erfolgreich! Du erhältst eine Bestätigung per E-Mail.
         </div>
       )}
 
       {/* Existing bookings */}
       {bookings.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-zinc-400">Deine Buchungen</h2>
+        <div className="space-y-2">
+          <h2
+            className="text-[11px] font-bold uppercase tracking-widest"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Deine Buchungen
+          </h2>
           {bookings.map(booking => {
             const info = BOOKING_TYPES.find(t => t.type === booking.type)
             const isPast = new Date(booking.scheduledAt) < new Date()
             return (
               <div
                 key={booking.id}
-                className="bg-[#111] border border-[#222] rounded-xl p-4 flex items-center justify-between gap-4"
+                className="rounded-xl border p-4 flex items-center justify-between gap-4"
+                style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{info?.icon}</span>
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
+                  >
+                    <CalendarIcon size={14} />
+                  </div>
                   <div>
-                    <div className="text-sm font-medium text-white">{info?.title}</div>
-                    <div className="text-xs text-zinc-500 mt-0.5">
+                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {info?.title}
+                    </div>
+                    <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                       {formatDate(booking.scheduledAt.toString())}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-full"
+                    style={
                       booking.status === 'UPCOMING' && !isPast
-                        ? 'bg-orange-500/15 text-orange-400'
+                        ? { background: 'var(--accent-dim)', color: 'var(--accent)' }
                         : booking.status === 'COMPLETED' || isPast
-                        ? 'bg-zinc-800 text-zinc-500'
-                        : 'bg-red-500/15 text-red-400'
-                    }`}
+                        ? { background: 'var(--bg-elevated)', color: 'var(--text-muted)' }
+                        : { background: 'var(--error-dim)', color: 'var(--error)' }
+                    }
                   >
                     {booking.status === 'CANCELLED'
                       ? 'Abgesagt'
@@ -182,9 +232,10 @@ export default function BuchungClient({ bookings: initialBookings }: Props) {
                       href={booking.meetingUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-orange-400 hover:underline"
+                      className="text-xs flex items-center gap-1 transition-opacity hover:opacity-70"
+                      style={{ color: 'var(--accent)' }}
                     >
-                      Beitreten →
+                      Beitreten <ArrowRightIcon size={11} />
                     </a>
                   )}
                 </div>
@@ -195,10 +246,30 @@ export default function BuchungClient({ bookings: initialBookings }: Props) {
       )}
 
       {bookings.length === 0 && !selected && (
-        <p className="text-zinc-600 text-sm text-center py-4">
+        <p className="text-sm text-center py-6" style={{ color: 'var(--text-muted)' }}>
           Noch keine Buchungen. Wähle oben einen Termin-Typ.
         </p>
       )}
     </div>
+  )
+}
+
+function GroupIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="6" cy="5" r="2.5" />
+      <path d="M1.5 13.5c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" />
+      <circle cx="11.5" cy="5.5" r="2" />
+      <path d="M14.5 13.5c0-2-1.3-3.5-3-3.5" />
+    </svg>
+  )
+}
+
+function PersonIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="8" cy="5" r="3" />
+      <path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" />
+    </svg>
   )
 }

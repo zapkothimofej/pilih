@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { StarFilledIcon, StarEmptyIcon, ArrowRightIcon } from '@/components/ui/icons'
 
 type Challenge = {
   id: string
@@ -11,7 +12,6 @@ type Challenge = {
 }
 
 const DIFFICULTY_LABELS = ['', 'Sehr leicht', 'Leicht', 'Mittel', 'Schwer', 'Sehr schwer']
-const DIFFICULTY_COLORS = ['', 'text-green-400', 'text-green-300', 'text-yellow-400', 'text-orange-400', 'text-red-400']
 
 interface ChallengeCardProps {
   challenge: Challenge
@@ -23,34 +23,56 @@ interface ChallengeCardProps {
 export default function ChallengeCard({ challenge, index, onSelect, loading }: ChallengeCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1, duration: 0.4 }}
+      transition={{ delay: index * 0.08, duration: 0.35, ease: 'easeOut' }}
     >
       <button
         onClick={() => onSelect(challenge.id)}
         disabled={loading}
-        className="w-full text-left group p-5 rounded-xl border border-[#222] bg-[#111] hover:border-orange-500/50 hover:bg-[#1a1a1a] transition-all duration-200 disabled:opacity-50"
+        className="w-full text-left group p-5 rounded-2xl border transition-all duration-200 disabled:opacity-40"
+        style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent-border)'
+          ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-elevated)'
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-default)'
+          ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-surface)'
+        }}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-[#222] text-zinc-400">
+          <div className="flex-1 space-y-2.5">
+            {/* Meta row */}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span
+                className="text-[11px] px-2 py-0.5 rounded-md font-medium"
+                style={{ background: 'var(--bg-overlay)', color: 'var(--text-secondary)' }}
+              >
                 {challenge.category}
               </span>
-              <span className={`text-xs font-medium ${DIFFICULTY_COLORS[challenge.currentDifficulty]}`}>
-                {'★'.repeat(challenge.currentDifficulty)}{'☆'.repeat(5 - challenge.currentDifficulty)} {DIFFICULTY_LABELS[challenge.currentDifficulty]}
-              </span>
+              <DifficultyStars level={challenge.currentDifficulty} />
             </div>
-            <h3 className="font-semibold text-white group-hover:text-orange-400 transition-colors">
+
+            {/* Title */}
+            <h3
+              className="font-semibold text-sm leading-snug transition-colors"
+              style={{ color: 'var(--text-primary)' }}
+            >
               {challenge.title}
             </h3>
-            <p className="text-sm text-zinc-400 leading-relaxed line-clamp-2">
+
+            {/* Description */}
+            <p className="text-xs leading-relaxed line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
               {challenge.description}
             </p>
           </div>
-          <div className="text-zinc-600 group-hover:text-orange-500 transition-colors mt-1 shrink-0">
-            <ArrowIcon />
+
+          <div
+            className="mt-1 shrink-0 transition-transform group-hover:translate-x-0.5"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <ArrowRightIcon size={15} />
           </div>
         </div>
       </button>
@@ -58,10 +80,17 @@ export default function ChallengeCard({ challenge, index, onSelect, loading }: C
   )
 }
 
-function ArrowIcon() {
+function DifficultyStars({ level }: { level: number }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12h14M12 5l7 7-7 7" />
-    </svg>
+    <div className="flex items-center gap-1">
+      {Array.from({ length: 5 }, (_, i) =>
+        i < level
+          ? <StarFilledIcon key={i} size={10} style={{ color: 'var(--accent)' }} />
+          : <StarEmptyIcon key={i} size={10} style={{ color: 'var(--text-muted)' }} />
+      )}
+      <span className="text-[11px] ml-1" style={{ color: 'var(--text-muted)' }}>
+        {DIFFICULTY_LABELS[level]}
+      </span>
+    </div>
   )
 }
