@@ -86,7 +86,7 @@ export async function POST(
     // Propagate the new target difficulty to all the user's challenges so
     // `heute` reads a fresh value (the completed row is covered by step 2).
     prisma.challenge.updateMany({
-      where: { userId: user.id },
+      where: { userId: user.id, status: { not: 'COMPLETED' } },
       data: { currentDifficulty: nextDifficulty },
     }),
   ])

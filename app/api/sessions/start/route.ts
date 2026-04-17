@@ -62,15 +62,26 @@ export async function POST(req: Request) {
     )
   }
 
-  const session = await prisma.dailySession.create({
-    data: {
-      userId: user.id,
-      dayNumber: day,
-      date: new Date(),
-      status: 'IN_PROGRESS',
-      selectedChallengeId: challengeId,
-    },
-  })
+  let session: { id: string }
+  try {
+    session = await prisma.dailySession.create({
+      data: {
+        userId: user.id,
+        dayNumber: day,
+        date: new Date(),
+        status: 'IN_PROGRESS',
+        selectedChallengeId: challengeId,
+      },
+    })
+  } catch (err: unknown) {
+    if ((err as { code?: string })?.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'Session für diesen Tag existiert bereits' },
+        { status: 409 }
+      )
+    }
+    throw err
+  }
 
   return NextResponse.json({ sessionId: session.id })
 }
