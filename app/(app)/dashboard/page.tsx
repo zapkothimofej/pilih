@@ -58,7 +58,9 @@ export default async function DashboardPage() {
       {completed < 21 ? (
         <Link
           href="/challenge/heute"
-          className="flex items-center justify-between w-full px-5 py-4 rounded-2xl border transition-all group"
+          className={`flex items-center justify-between w-full px-5 py-4 rounded-2xl border transition-all group ${
+            hasChallengeToday ? '' : 'cta-sheen'
+          }`}
           style={hasChallengeToday
             ? { background: 'var(--bg-surface)', borderColor: 'var(--border-default)', cursor: 'default', pointerEvents: 'none' }
             : { background: 'var(--accent-dim)', borderColor: 'var(--accent-border)' }

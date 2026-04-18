@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { TrophyIcon, CheckIcon } from '@/components/ui/icons'
+import AnimatedNumber from '@/components/ui/animations/AnimatedNumber'
 
 type Participant = {
   id: string; name: string; email: string; company: string
@@ -76,19 +77,23 @@ export default function AdminClient({
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Gesamt', value: stats.total },
-          { label: 'Aktiv', value: stats.active },
-          { label: 'Abgeschlossen', value: stats.finished },
-          { label: 'Ø Fortschritt', value: `${stats.avgProgress}%` },
-        ].map(s => (
+          { label: 'Gesamt', value: stats.total, suffix: '' },
+          { label: 'Aktiv', value: stats.active, suffix: '' },
+          { label: 'Abgeschlossen', value: stats.finished, suffix: '' },
+          { label: 'Ø Fortschritt', value: stats.avgProgress, suffix: '%' },
+        ].map((s) => (
           <div
             key={s.label}
             className="rounded-2xl border p-4 text-center"
             style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
           >
-            <div className="text-2xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-              {s.value}
-            </div>
+            <AnimatedNumber
+              value={s.value}
+              suffix={s.suffix}
+              className="text-2xl font-bold tabular-nums block"
+              style={{ color: 'var(--text-primary)' }}
+              onScroll={false}
+            />
             <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
               {s.label}
             </div>
