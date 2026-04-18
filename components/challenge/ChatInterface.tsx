@@ -258,10 +258,32 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
     }
   }
 
+  // A separate off-screen status region receives only "finished" and
+  // "error" signals, so screen reader users get one concise announcement
+  // per turn instead of the entire streamed transcript re-announced on
+  // every token (which is what a role="log" with aria-live="polite" on
+  // the scroll container was doing).
+  const statusMessage =
+    isStreaming
+      ? 'Antwort wird generiert'
+      : latestJudge && !judgeFeedback
+        ? `Antwort fertig. Bewertung ${latestJudge.score} von 10.`
+        : ''
+
   return (
     <div className="flex flex-col">
-      {/* Messages */}
-      <div ref={logRef} role="log" aria-live="polite" aria-label="Chat-Verlauf" className="space-y-4 pb-4 min-h-[280px] max-h-[460px] overflow-y-auto">
+      <div
+        role="status"
+        aria-live="polite"
+        className="sr-only"
+      >
+        {statusMessage}
+      </div>
+      {/* Messages — role="log" gives screen readers the semantic
+          "chat transcript" affordance without broadcasting every
+          streamed token. Live-announcements go through the status
+          region above. */}
+      <div ref={logRef} role="log" aria-label="Chat-Verlauf" className="space-y-4 pb-4 min-h-[280px] max-h-[460px] overflow-y-auto">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-10 gap-2">
             <div

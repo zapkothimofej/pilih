@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { gsap } from 'gsap'
 import { useGSAP } from '@gsap/react'
@@ -64,6 +64,14 @@ export default function OnboardingWizard() {
     },
     { scope: stepScope, dependencies: [step, reduced] }
   )
+
+  // When step changes, move focus to the new step's heading so screen
+  // reader users are announced into the new content instead of being
+  // stranded on the "Weiter" button that just vanished.
+  useEffect(() => {
+    const heading = stepScope.current?.querySelector<HTMLElement>('.onb-step h2')
+    heading?.focus()
+  }, [step])
 
   function set<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -138,7 +146,7 @@ export default function OnboardingWizard() {
       {step === 1 && (
         <div key="s1" className="onb-step space-y-5">
           <div>
-            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Wer bist du?</h2>
+            <h2 tabIndex={-1} className="text-xl font-bold focus:outline-none" style={{ color: 'var(--text-primary)' }}>Wer bist du?</h2>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
               Erzähl uns von dir und deiner Arbeit.
             </p>
@@ -158,7 +166,7 @@ export default function OnboardingWizard() {
       {step === 2 && (
         <div key="s2" className="onb-step space-y-6">
           <div>
-            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Dein KI-Kenntnisstand</h2>
+            <h2 tabIndex={-1} className="text-xl font-bold focus:outline-none" style={{ color: 'var(--text-primary)' }}>Dein KI-Kenntnisstand</h2>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Ehrlich — kein Level ist falsch.</p>
           </div>
 
@@ -244,7 +252,7 @@ export default function OnboardingWizard() {
       {step === 3 && (
         <div key="s3" className="onb-step space-y-5">
           <div>
-            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Dein Arbeitsalltag</h2>
+            <h2 tabIndex={-1} className="text-xl font-bold focus:outline-none" style={{ color: 'var(--text-primary)' }}>Dein Arbeitsalltag</h2>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
               Je konkreter, desto besser werden deine Challenges.
             </p>

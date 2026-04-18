@@ -240,3 +240,19 @@ button[class*="icon-"]:not(.tap-small),
   min-height: 44px;
   min-width: 44px;
 }
+
+/* Accessible off-screen content — keeps text in the DOM for screen
+   readers while hiding it visually. Tailwind ships this as .sr-only
+   but we define it here too for components that bring tokens in via
+   globals alone. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
