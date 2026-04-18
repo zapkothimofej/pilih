@@ -45,3 +45,7 @@ next-env.d.ts
 graphify-out/
 .obsidian/workspace*
 .obsidian-claude.json
+
+# Claude Code private workspace — agent worktrees, transcripts, caches.
+# Keep per-user state out of the repo; settings.local.json is personal too.
+/.claude/
