@@ -52,14 +52,23 @@ export default function AppNav({ user }: { user: { name: string; role: Role } })
             })}
 
             {(user.role === 'COMPANY_ADMIN' || user.role === 'SUPER_ADMIN') && (
-              <Link
-                href="/admin"
-                className="px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-1.5"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                <AdminIcon size={13} />
-                Admin
-              </Link>
+              <>
+                <Link
+                  href="/admin"
+                  className="px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-1.5"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <AdminIcon size={13} />
+                  Admin
+                </Link>
+                <Link
+                  href="/admin/submissions"
+                  className="px-3 py-1.5 rounded-lg text-sm transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Reviews
+                </Link>
+              </>
             )}
           </div>
         </div>
