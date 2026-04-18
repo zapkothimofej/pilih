@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { MicIcon } from '@/components/ui/icons'
 
 interface SpeechInputProps {
@@ -15,6 +15,21 @@ export default function SpeechInput({ value, onChange, placeholder, rows = 3, la
   const [isListening, setIsListening] = useState(false)
   const [speechError, setSpeechError] = useState<string | null>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const isMountedRef = useRef(true)
+
+  // Keep isMountedRef accurate so onend/onerror callbacks that fire after
+  // unmount (browser delays them) don't attempt state updates on a dead
+  // component.
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false
+      try {
+        recognitionRef.current?.abort()
+      } catch {
+        // ignore — some engines throw if abort() is called twice
+      }
+    }
+  }, [])
 
   type SpeechRecognitionCtor = new () => SpeechRecognition
   const getSR = (): SpeechRecognitionCtor | undefined =>
@@ -36,6 +51,7 @@ export default function SpeechInput({ value, onChange, placeholder, rows = 3, la
     recognition.interimResults = true
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
+      if (!isMountedRef.current) return
       const transcript = Array.from(event.results)
         .filter((r) => r.isFinal)
         .map((r: SpeechRecognitionResult) => r[0].transcript)
@@ -43,8 +59,12 @@ export default function SpeechInput({ value, onChange, placeholder, rows = 3, la
       if (transcript) onChange(value ? `${value} ${transcript}` : transcript)
     }
 
-    recognition.onend = () => setIsListening(false)
+    recognition.onend = () => {
+      if (!isMountedRef.current) return
+      setIsListening(false)
+    }
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      if (!isMountedRef.current) return
       setIsListening(false)
       if (event.error === 'not-allowed') {
         setSpeechError('Mikrofon-Zugriff verweigert. Bitte in den Browser-Einstellungen erlauben.')
@@ -62,7 +82,7 @@ export default function SpeechInput({ value, onChange, placeholder, rows = 3, la
 
   const stopListening = useCallback(() => {
     recognitionRef.current?.stop()
-    setIsListening(false)
+    if (isMountedRef.current) setIsListening(false)
   }, [])
 
   return (
