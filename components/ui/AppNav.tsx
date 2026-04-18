@@ -1,9 +1,21 @@
 'use client'
 
+import { useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { gsap } from 'gsap'
+import { useGSAP } from '@gsap/react'
 import type { Role } from '@/app/generated/prisma/client'
-import { PilihMark, BarChartIcon, CalendarIcon, SettingsIcon, TargetIcon, HomeIcon, AdminIcon } from '@/components/ui/icons'
+import {
+  PilihMark,
+  BarChartIcon,
+  CalendarIcon,
+  SettingsIcon,
+  TargetIcon,
+  HomeIcon,
+  AdminIcon,
+} from '@/components/ui/icons'
+import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
 
 const navItems = [
   { href: '/dashboard', label: 'Home', icon: HomeIcon },
@@ -14,6 +26,38 @@ const navItems = [
 
 export default function AppNav({ user }: { user: { name: string; role: Role } }) {
   const pathname = usePathname()
+  const navRef = useRef<HTMLDivElement>(null)
+  const indicatorRef = useRef<HTMLSpanElement>(null)
+  const reduced = useReducedMotion()
+
+  // Sliding pill indicator tracks the active link's position + width.
+  // Runs on mount and on every route change. Cheaper than rendering a
+  // styled background on every link individually — one element, one
+  // tween per navigation.
+  useGSAP(
+    () => {
+      if (!navRef.current || !indicatorRef.current) return
+      const active = navRef.current.querySelector<HTMLElement>('a[data-active="true"]')
+      if (!active) {
+        gsap.set(indicatorRef.current, { opacity: 0 })
+        return
+      }
+      const navRect = navRef.current.getBoundingClientRect()
+      const itemRect = active.getBoundingClientRect()
+      const x = itemRect.left - navRect.left
+      const width = itemRect.width
+
+      const duration = reduced ? 0 : 0.35
+      gsap.to(indicatorRef.current, {
+        x,
+        width,
+        opacity: 1,
+        duration,
+        ease: 'power3.out',
+      })
+    },
+    { dependencies: [pathname, reduced] }
+  )
 
   return (
     <nav
@@ -33,18 +77,31 @@ export default function AppNav({ user }: { user: { name: string; role: Role } })
             </span>
           </Link>
 
-          <div className="flex items-center gap-0.5">
+          <div ref={navRef} className="relative flex items-center gap-0.5">
+            {/* Sliding indicator pill */}
+            <span
+              ref={indicatorRef}
+              aria-hidden="true"
+              className="absolute top-1/2 -translate-y-1/2 left-0 h-8 rounded-lg pointer-events-none"
+              style={{
+                background: 'var(--accent-dim)',
+                border: '1px solid var(--accent-border)',
+                opacity: 0,
+                willChange: 'transform, width',
+              }}
+            />
+
             {navItems.map((item) => {
-              const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
+              const active =
+                pathname === item.href ||
+                (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="px-3 py-1.5 rounded-lg text-sm transition-colors"
-                  style={{
-                    background: active ? 'var(--accent-dim)' : 'transparent',
-                    color: active ? 'var(--accent)' : 'var(--text-secondary)',
-                  }}
+                  data-active={active}
+                  className="relative z-10 px-3 py-1.5 rounded-lg text-sm transition-colors"
+                  style={{ color: active ? 'var(--accent)' : 'var(--text-secondary)' }}
                 >
                   {item.label}
                 </Link>
@@ -55,16 +112,20 @@ export default function AppNav({ user }: { user: { name: string; role: Role } })
               <>
                 <Link
                   href="/admin"
-                  className="px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-1.5"
-                  style={{ color: 'var(--text-muted)' }}
+                  data-active={pathname === '/admin'}
+                  className="relative z-10 px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-1.5"
+                  style={{ color: pathname === '/admin' ? 'var(--accent)' : 'var(--text-muted)' }}
                 >
                   <AdminIcon size={13} />
                   Admin
                 </Link>
                 <Link
                   href="/admin/submissions"
-                  className="px-3 py-1.5 rounded-lg text-sm transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
+                  data-active={pathname.startsWith('/admin/submissions')}
+                  className="relative z-10 px-3 py-1.5 rounded-lg text-sm transition-colors"
+                  style={{
+                    color: pathname.startsWith('/admin/submissions') ? 'var(--accent)' : 'var(--text-muted)',
+                  }}
                 >
                   Reviews
                 </Link>
@@ -90,7 +151,7 @@ export default function AppNav({ user }: { user: { name: string; role: Role } })
               color: 'var(--accent)',
             }}
           >
-            {user.name.charAt(0).toUpperCase()}
+            {user.name.trim().charAt(0).toUpperCase() || '?'}
           </div>
         </div>
       </div>
