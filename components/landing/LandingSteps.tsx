@@ -58,24 +58,24 @@ export default function LandingSteps() {
         },
       })
 
-      // Magnetic hover: subtle tilt towards the cursor for feature cards.
+      // Magnetic hover via gsap.quickTo — avoids allocating a new tween
+      // on every mousemove event (60fps GC pressure) by caching setters.
       const cards = scope.current.querySelectorAll<HTMLElement>('.feature-card')
       const listeners: Array<() => void> = []
       cards.forEach((card) => {
+        gsap.set(card, { transformPerspective: 800 })
+        const rx = gsap.quickTo(card, 'rotateX', { duration: 0.4, ease: 'power2.out' })
+        const ry = gsap.quickTo(card, 'rotateY', { duration: 0.4, ease: 'power2.out' })
         const onMove = (e: MouseEvent) => {
           const rect = card.getBoundingClientRect()
           const x = (e.clientX - rect.left - rect.width / 2) / rect.width
           const y = (e.clientY - rect.top - rect.height / 2) / rect.height
-          gsap.to(card, {
-            rotateY: x * 6,
-            rotateX: -y * 6,
-            duration: 0.4,
-            ease: 'power2.out',
-            transformPerspective: 800,
-          })
+          ry(x * 6)
+          rx(-y * 6)
         }
         const onLeave = () => {
-          gsap.to(card, { rotateX: 0, rotateY: 0, duration: 0.5, ease: 'power2.out' })
+          rx(0)
+          ry(0)
         }
         card.addEventListener('mousemove', onMove)
         card.addEventListener('mouseleave', onLeave)

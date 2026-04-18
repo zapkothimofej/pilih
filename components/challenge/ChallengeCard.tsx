@@ -50,21 +50,24 @@ export default function ChallengeCard({ challenge, index, onSelect, loading }: C
         ease: 'power3.out',
         delay: index * 0.08,
       })
+      gsap.set(el, { transformPerspective: 900 })
+
+      // gsap.quickTo creates a preconfigured setter that avoids building
+      // a fresh tween on every mousemove event — the original handler
+      // allocated a tween object at 60fps which GC'd constantly.
+      const rx = gsap.quickTo(el, 'rotateX', { duration: 0.35, ease: 'power2.out' })
+      const ry = gsap.quickTo(el, 'rotateY', { duration: 0.35, ease: 'power2.out' })
 
       const onMove = (e: MouseEvent) => {
         const r = el.getBoundingClientRect()
         const x = (e.clientX - r.left - r.width / 2) / r.width
         const y = (e.clientY - r.top - r.height / 2) / r.height
-        gsap.to(el, {
-          rotateY: x * 4,
-          rotateX: -y * 4,
-          duration: 0.35,
-          ease: 'power2.out',
-          transformPerspective: 900,
-        })
+        ry(x * 4)
+        rx(-y * 4)
       }
       const onLeave = () => {
-        gsap.to(el, { rotateX: 0, rotateY: 0, duration: 0.45, ease: 'power2.out' })
+        rx(0)
+        ry(0)
       }
       el.addEventListener('mousemove', onMove)
       el.addEventListener('mouseleave', onLeave)
