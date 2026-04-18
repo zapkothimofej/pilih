@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 import { prisma } from '@/lib/db/prisma'
-import { FlameIcon, BoltIcon, BotIcon, CheckIcon } from '@/components/ui/icons'
+import { FlameIcon, BoltIcon, BotIcon } from '@/components/ui/icons'
 import { calcStreak, totalXp } from '@/lib/progress/xp'
+import FortschrittCalendar from './FortschrittCalendar'
 
 export default async function FortschrittPage() {
   const user = await getCurrentDbUser()
@@ -64,37 +65,14 @@ export default async function FortschrittPage() {
       </div>
 
       {/* 21-day calendar */}
-      <div
-        className="rounded-2xl border p-5"
-        style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
-      >
-        <h2
-          className="text-[11px] font-bold uppercase tracking-widest mb-4"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          21-Tage-Kalender
-        </h2>
-        <div className="grid grid-cols-7 gap-2">
-          {days.map(({ day, completed, session }) => (
-            <div
-              key={day}
-              title={session?.selectedChallenge?.title ?? `Tag ${day}`}
-              className="aspect-square rounded-xl flex items-center justify-center text-xs font-medium transition-colors"
-              style={completed
-                ? { background: 'var(--accent)', color: '#fff' }
-                : day === sessions.length + 1
-                ? { background: 'var(--accent-dim)', border: '1.5px solid var(--accent-border)', color: 'var(--accent)' }
-                : { background: 'var(--bg-elevated)', color: 'var(--text-muted)' }
-              }
-            >
-              {completed
-                ? <CheckIcon size={11} />
-                : <span className="tabular-nums">{day}</span>
-              }
-            </div>
-          ))}
-        </div>
-      </div>
+      <FortschrittCalendar
+        days={days.map(({ day, completed, session }) => ({
+          day,
+          completed,
+          title: session?.selectedChallenge?.title,
+        }))}
+        completedCount={sessions.length}
+      />
 
       {/* Challenge history */}
       {sessions.length > 0 && (
