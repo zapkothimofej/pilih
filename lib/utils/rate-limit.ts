@@ -51,6 +51,26 @@ export function rateLimit(key: string, limit: number, windowMs: number): RateLim
   return memRateLimit(key, limit, windowMs)
 }
 
+// Lazy cleanup: once per N invocations, sweep rows that expired > 1 hour
+// ago. Without this the RateLimitBucket table grows unbounded at one
+// row per user × action. The probabilistic trigger keeps the
+// happy-path latency unchanged for 99% of calls.
+let lastBucketSweep = 0
+const BUCKET_SWEEP_INTERVAL_MS = 15 * 60 * 1000
+
+async function sweepExpiredBuckets(): Promise<void> {
+  const now = Date.now()
+  if (now - lastBucketSweep < BUCKET_SWEEP_INTERVAL_MS) return
+  lastBucketSweep = now
+  try {
+    await prisma.rateLimitBucket.deleteMany({
+      where: { resetAt: { lt: new Date(now - 60 * 60_000) } },
+    })
+  } catch {
+    // swallow — next sweep will catch the rows
+  }
+}
+
 // DB-backed path. Atomic: one INSERT on bucket miss, a conditional
 // reset-updateMany when the window has expired, and a conditional
 // increment-updateMany when it hasn't. Each updateMany is guarded by
@@ -62,6 +82,9 @@ export async function rateLimitAsync(
   limit: number,
   windowMs: number
 ): Promise<RateLimitResult> {
+  // Fire-and-forget; don't let sweep errors block the real request.
+  void sweepExpiredBuckets()
+
   const now = new Date()
   const resetAt = new Date(now.getTime() + windowMs)
 

@@ -11,6 +11,26 @@ import { env } from '@/lib/env'
 const SVIX_MAX_SKEW_MS = 5 * 60 * 1000
 const MAX_WEBHOOK_BYTES = 64 * 1024
 
+// Lazy cleanup: svix retries for ~72 h, so anything older than 30 d is
+// safe to drop. Without pruning, ProcessedWebhook grows unbounded at
+// Clerk's sustained rate and the unique-index lookup cost climbs.
+let lastWebhookSweep = 0
+const WEBHOOK_SWEEP_INTERVAL_MS = 6 * 60 * 60 * 1000
+const WEBHOOK_TTL_MS = 30 * 24 * 60 * 60 * 1000
+
+async function sweepProcessedWebhooks(): Promise<void> {
+  const now = Date.now()
+  if (now - lastWebhookSweep < WEBHOOK_SWEEP_INTERVAL_MS) return
+  lastWebhookSweep = now
+  try {
+    await prisma.processedWebhook.deleteMany({
+      where: { createdAt: { lt: new Date(now - WEBHOOK_TTL_MS) } },
+    })
+  } catch {
+    // swallow — next sweep will catch the rows
+  }
+}
+
 type ClerkWebhookEvent = {
   type: string
   data: {
@@ -95,5 +115,6 @@ export async function POST(req: Request) {
     return new Response('Webhook-Verarbeitung fehlgeschlagen', { status: 500 })
   }
 
+  void sweepProcessedWebhooks()
   return new Response('OK', { status: 200 })
 }
