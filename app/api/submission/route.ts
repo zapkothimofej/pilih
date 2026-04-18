@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
@@ -111,14 +112,17 @@ export async function POST(req: Request) {
     )
   }
 
+  // Random nonce so the LLM can't be steered by an attacker closing
+  // </use_case> from within their own submission text.
+  const tag = `uc-${randomBytes(6).toString('hex')}`
   const userPayload = cases
     .map(
-      (c, i) => `<use_case index="${i + 1}">
-<title>${escapeXmlText(c.title)}</title>
-<description>${escapeXmlText(c.description)}</description>
-<prompt>${escapeXmlText(c.prompt)}</prompt>
-<result>${escapeXmlText(c.result)}</result>
-</use_case>`
+      (c, i) => `<use_case_${tag} index="${i + 1}">
+<title_${tag}>${escapeXmlText(c.title)}</title_${tag}>
+<description_${tag}>${escapeXmlText(c.description)}</description_${tag}>
+<prompt_${tag}>${escapeXmlText(c.prompt)}</prompt_${tag}>
+<result_${tag}>${escapeXmlText(c.result)}</result_${tag}>
+</use_case_${tag}>`
     )
     .join('\n\n')
 

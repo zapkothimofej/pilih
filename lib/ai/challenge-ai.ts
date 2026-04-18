@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 import type { OnboardingProfile } from '@/app/generated/prisma/client'
@@ -181,6 +182,7 @@ export async function* streamChallengeResponse(
   // Schema permits up to 800 chars; match that so we don't silently clip
   // domain context out of the assistant's awareness.
   const truncatedDescription = challengeDescription.slice(0, 800)
+  const tag = `ch-${randomBytes(6).toString('hex')}`
 
   const system = `Du bist das LLM, an das der User seinen Prompt richtet. Du simulierst ein neutrales, leistungsfähiges Arbeits-LLM (vergleichbar mit Claude, ChatGPT oder Gemini).
 
@@ -198,9 +200,9 @@ Dein Job:
 
 **Kontext nur für dich (nicht erwähnen, nicht wiederholen):**
 Der User absolviert gerade eine Prompt-Engineering-Lern-Challenge. Die Challenge lautet:
-<challenge>
+<challenge_${tag}>
 ${escapeXmlText(truncatedDescription)}
-</challenge>
+</challenge_${tag}>
 
 Nutze diesen Kontext nur, um die Domäne der Aufgabe zu verstehen. Bestätige/erwähne/zitieren niemals die Challenge selbst. Antworte NUR auf die Prompts des Users.
 
