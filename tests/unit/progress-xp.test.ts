@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { sessionXp, totalXp, calcStreak, nextDayNumber } from '../../lib/progress/xp'
+import {
+  sessionXp,
+  totalXp,
+  calcStreak,
+  nextDayNumber,
+  xpLevel,
+  averageScore,
+  XP_PER_LEVEL,
+} from '../../lib/progress/xp'
 
 describe('sessionXp', () => {
   it('prefers persisted xpEarned over derived fallback', () => {
@@ -84,5 +92,38 @@ describe('nextDayNumber', () => {
 
   it('handles single day', () => {
     expect(nextDayNumber([7])).toBe(8)
+  })
+})
+
+describe('xpLevel', () => {
+  it('zero xp is level 1 with full next-level gap', () => {
+    const l = xpLevel(0)
+    expect(l.level).toBe(1)
+    expect(l.xpToNext).toBe(XP_PER_LEVEL)
+    expect(l.progress).toBe(0)
+  })
+
+  it('exactly on a level boundary promotes', () => {
+    const l = xpLevel(XP_PER_LEVEL)
+    expect(l.level).toBe(2)
+    expect(l.progress).toBe(0)
+    expect(l.xpToNext).toBe(XP_PER_LEVEL)
+  })
+
+  it('mid-level reports the remaining gap', () => {
+    const l = xpLevel(Math.floor(XP_PER_LEVEL / 2))
+    expect(l.level).toBe(1)
+    expect(l.xpToNext).toBeGreaterThan(0)
+    expect(l.xpToNext).toBeLessThan(XP_PER_LEVEL)
+  })
+})
+
+describe('averageScore', () => {
+  it('is 0 for no attempts (never NaN)', () => {
+    expect(averageScore([])).toBe(0)
+  })
+
+  it('averages judgeScore', () => {
+    expect(averageScore([{ judgeScore: 4 }, { judgeScore: 8 }])).toBe(6)
   })
 })

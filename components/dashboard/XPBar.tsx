@@ -2,10 +2,10 @@
 
 import { motion } from 'framer-motion'
 import { BoltIcon } from '@/components/ui/icons'
+import { xpLevel } from '@/lib/progress/xp'
 
 export default function XPBar({ xp }: { xp: number }) {
-  const level = Math.floor(xp / 500) + 1
-  const progress = (xp % 500) / 500
+  const { level, xpToNext, progress } = xpLevel(xp)
 
   return (
     <div className="space-y-2">
@@ -32,7 +32,7 @@ export default function XPBar({ xp }: { xp: number }) {
       </div>
 
       <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-        {500 - (xp % 500)} XP bis Level {level + 1}
+        {xpToNext} XP bis Level {level + 1}
       </div>
     </div>
   )

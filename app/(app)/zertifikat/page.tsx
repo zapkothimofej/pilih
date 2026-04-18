@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma'
 import CertificateCard from '@/components/zertifikat/CertificateCard'
 import KonfettiAnimation from '@/components/zertifikat/KonfettiAnimation'
 import { TrophyIcon } from '@/components/ui/icons'
+import { averageScore } from '@/lib/progress/xp'
 
 export default async function ZertifikatPage() {
   const user = await getCurrentDbUser()
@@ -12,10 +13,11 @@ export default async function ZertifikatPage() {
   const certificate = await prisma.certificate.findUnique({ where: { userId: user.id } })
   if (!certificate) redirect('/abschluss')
 
-  const attempts = await prisma.promptAttempt.findMany({ where: { userId: user.id } })
-  const avgScore = attempts.length
-    ? attempts.reduce((acc, a) => acc + a.judgeScore, 0) / attempts.length
-    : 0
+  const attempts = await prisma.promptAttempt.findMany({
+    where: { userId: user.id },
+    select: { judgeScore: true },
+  })
+  const avgScore = averageScore(attempts)
 
   return (
     <div className="max-w-xl mx-auto space-y-6">

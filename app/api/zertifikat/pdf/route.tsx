@@ -4,6 +4,7 @@ import { getCurrentDbUser } from '@/lib/utils/auth'
 import { prisma } from '@/lib/db/prisma'
 import { rateLimitAsync } from '@/lib/utils/rate-limit'
 import { logError } from '@/lib/utils/log'
+import { averageScore } from '@/lib/progress/xp'
 import CertificatePdf from '@/components/zertifikat/CertificatePdf'
 
 export const dynamic = 'force-dynamic'
@@ -26,10 +27,11 @@ export async function GET() {
   const certificate = await prisma.certificate.findUnique({ where: { userId: user.id } })
   if (!certificate) return NextResponse.json({ error: 'Kein Zertifikat gefunden' }, { status: 404 })
 
-  const attempts = await prisma.promptAttempt.findMany({ where: { userId: user.id } })
-  const avgScore = attempts.length
-    ? attempts.reduce((acc, a) => acc + a.judgeScore, 0) / attempts.length
-    : 0
+  const attempts = await prisma.promptAttempt.findMany({
+    where: { userId: user.id },
+    select: { judgeScore: true },
+  })
+  const avgScore = averageScore(attempts)
 
   let buffer: Buffer
   let timer: ReturnType<typeof setTimeout> | undefined

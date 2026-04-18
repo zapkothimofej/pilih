@@ -44,3 +44,28 @@ export function nextDayNumber(completedDayNumbers: number[]): number {
   if (completedDayNumbers.length === 0) return 1
   return Math.max(...completedDayNumbers) + 1
 }
+
+// Single source of truth for level math. Changing XP_PER_LEVEL here
+// ripples through Dashboard XPBar, Admin views, and any future
+// level-based UI without hunting literals.
+export const XP_PER_LEVEL = 500
+
+export function xpLevel(xp: number): {
+  level: number
+  xpInLevel: number
+  xpToNext: number
+  progress: number
+} {
+  const level = Math.floor(xp / XP_PER_LEVEL) + 1
+  const xpInLevel = xp % XP_PER_LEVEL
+  const xpToNext = XP_PER_LEVEL - xpInLevel
+  const progress = xpInLevel / XP_PER_LEVEL
+  return { level, xpInLevel, xpToNext, progress }
+}
+
+// Average judgeScore across all scored attempts. One shared helper so
+// fortschritt, certificate page, and PDF don't drift.
+export function averageScore(attempts: Array<{ judgeScore: number }>): number {
+  if (attempts.length === 0) return 0
+  return attempts.reduce((acc, a) => acc + a.judgeScore, 0) / attempts.length
+}
