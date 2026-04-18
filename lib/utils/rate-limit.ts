@@ -51,9 +51,12 @@ export function rateLimit(key: string, limit: number, windowMs: number): RateLim
   return memRateLimit(key, limit, windowMs)
 }
 
-// DB-backed path. Atomic: one INSERT on bucket miss (or expired window)
-// and a single conditional UPDATE to bump the counter. No read-modify-write
-// race because the WHERE clause enforces the cap.
+// DB-backed path. Atomic: one INSERT on bucket miss, a conditional
+// reset-updateMany when the window has expired, and a conditional
+// increment-updateMany when it hasn't. Each updateMany is guarded by
+// `resetAt` in the WHERE so a concurrent reset that lands between our
+// read and write doesn't get clobbered — the second writer sees 0 rows
+// affected and re-reads rather than doubling the limit.
 export async function rateLimitAsync(
   key: string,
   limit: number,
@@ -63,37 +66,66 @@ export async function rateLimitAsync(
   const resetAt = new Date(now.getTime() + windowMs)
 
   try {
-    // Try to create a fresh bucket — succeeds on first call in a window.
     await prisma.rateLimitBucket.create({ data: { key, count: 1, resetAt } })
     return { allowed: true, remaining: limit - 1, resetAt: resetAt.getTime() }
   } catch {
-    // Bucket exists. Either the window expired (reset it) or we must
-    // try to bump within the cap.
-    const existing = await prisma.rateLimitBucket.findUnique({ where: { key } })
-    if (!existing || existing.resetAt.getTime() <= now.getTime()) {
-      await prisma.rateLimitBucket.update({
-        where: { key },
-        data: { count: 1, resetAt },
+    // Loop at most twice: one pass for reset-or-increment, a second in
+    // case a concurrent writer beat us to the reset and we need to
+    // read the fresh bucket and bump it instead.
+    for (let pass = 0; pass < 2; pass++) {
+      const existing = await prisma.rateLimitBucket.findUnique({ where: { key } })
+      if (!existing) {
+        // Another writer deleted or we somehow lost the row — retry create.
+        try {
+          await prisma.rateLimitBucket.create({ data: { key, count: 1, resetAt } })
+          return { allowed: true, remaining: limit - 1, resetAt: resetAt.getTime() }
+        } catch {
+          continue
+        }
+      }
+
+      if (existing.resetAt.getTime() <= now.getTime()) {
+        // Window expired — try to claim the reset. If another writer
+        // got here first the updateMany affects 0 rows and we fall
+        // through to the next pass to increment their bucket instead.
+        const resetResult = await prisma.rateLimitBucket.updateMany({
+          where: { key, resetAt: existing.resetAt },
+          data: { count: 1, resetAt },
+        })
+        if (resetResult.count > 0) {
+          return { allowed: true, remaining: limit - 1, resetAt: resetAt.getTime() }
+        }
+        continue
+      }
+
+      if (existing.count >= limit) {
+        return { allowed: false, remaining: 0, resetAt: existing.resetAt.getTime() }
+      }
+
+      // Conditional increment guarded by resetAt — if a reset lands
+      // between read and write, count changes to 1 under a new
+      // resetAt and our updateMany matches zero rows.
+      const bump = await prisma.rateLimitBucket.updateMany({
+        where: { key, count: { lt: limit }, resetAt: existing.resetAt },
+        data: { count: { increment: 1 } },
       })
-      return { allowed: true, remaining: limit - 1, resetAt: resetAt.getTime() }
+      if (bump.count > 0) {
+        return {
+          allowed: true,
+          remaining: Math.max(0, limit - (existing.count + 1)),
+          resetAt: existing.resetAt.getTime(),
+        }
+      }
+      // Lost the race — loop and reconsider.
     }
-    if (existing.count >= limit) {
-      return { allowed: false, remaining: 0, resetAt: existing.resetAt.getTime() }
-    }
-    // Conditional increment — only if still under the cap at write time.
-    const result = await prisma.rateLimitBucket.updateMany({
-      where: { key, count: { lt: limit }, resetAt: existing.resetAt },
-      data: { count: { increment: 1 } },
-    })
-    if (result.count === 0) {
-      // Someone else bumped to the cap between our read and write.
-      return { allowed: false, remaining: 0, resetAt: existing.resetAt.getTime() }
-    }
-    const fresh = await prisma.rateLimitBucket.findUnique({ where: { key } })
+
+    // Under sustained contention we shouldn't reach here, but fail
+    // closed rather than double-counting.
+    const existing = await prisma.rateLimitBucket.findUnique({ where: { key } })
     return {
-      allowed: true,
-      remaining: Math.max(0, limit - (fresh?.count ?? limit)),
-      resetAt: existing.resetAt.getTime(),
+      allowed: false,
+      remaining: 0,
+      resetAt: existing?.resetAt.getTime() ?? resetAt.getTime(),
     }
   }
 }

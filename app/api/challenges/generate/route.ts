@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 
+import { Prisma } from '@/app/generated/prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { generateChallenges } from '@/lib/ai/challenge-ai'
 import { rateLimitAsync, rateLimitHeaders } from '@/lib/utils/rate-limit'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 import { assertSameOrigin } from '@/lib/utils/csrf'
+import { logError } from '@/lib/utils/log'
 
 // 3 requests per hour — challenge generation is expensive (Claude Sonnet, 21 challenges)
 const GENERATE_LIMIT = 3
@@ -30,16 +32,32 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Onboarding nicht abgeschlossen' }, { status: 400 })
   }
 
-  // Atomic check-and-create: prevents duplicate generation under concurrent requests
-  return await prisma.$transaction(async (tx) => {
-    const existing = await tx.challenge.count({ where: { userId: user.id } })
-    if (existing > 0) {
-      return NextResponse.json({ success: true, count: existing, cached: true })
-    }
+  // Fast path: challenges already exist, no LLM call needed.
+  const existing = await prisma.challenge.count({ where: { userId: user.id } })
+  if (existing > 0) {
+    return NextResponse.json({ success: true, count: existing, cached: true })
+  }
 
-    const generated = await generateChallenges(profile)
+  // Run the Sonnet call OUTSIDE the Prisma $transaction. A cold LLM
+  // invocation takes 15–40 s, which blows well past Prisma's default
+  // 5 s transaction timeout and serializes a connection for the
+  // duration. The DB-level @@unique([userId, dayNumber]) constraint
+  // is the real atomicity guard — two concurrent generators collide
+  // on P2002 on the second createMany, and we respond with "cached"
+  // because the first attempt's rows are now present.
+  let generated: Awaited<ReturnType<typeof generateChallenges>>
+  try {
+    generated = await generateChallenges(profile)
+  } catch (err) {
+    logError('challenges.generate', 'LLM generation failed', err)
+    return NextResponse.json(
+      { error: 'Challenge-Generierung fehlgeschlagen. Bitte erneut versuchen.' },
+      { status: 502 }
+    )
+  }
 
-    await tx.challenge.createMany({
+  try {
+    await prisma.challenge.createMany({
       data: generated.map((c) => ({
         userId: user.id,
         dayNumber: c.dayNumber,
@@ -51,8 +69,15 @@ export async function POST(req: Request) {
         currentDifficulty: c.difficulty,
         status: 'UPCOMING',
       })),
+      skipDuplicates: true,
     })
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      const count = await prisma.challenge.count({ where: { userId: user.id } })
+      return NextResponse.json({ success: true, count, cached: true })
+    }
+    throw err
+  }
 
-    return NextResponse.json({ success: true, count: generated.length })
-  })
+  return NextResponse.json({ success: true, count: generated.length })
 }

@@ -91,6 +91,8 @@ model User {
   bookings    Booking[]
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
+
+  @@index([companyId])
 }
 
 model OnboardingProfile {
@@ -125,6 +127,7 @@ model Challenge {
   sessions          DailySession[]
   createdAt         DateTime        @default(now())
 
+  @@unique([userId, dayNumber])
   @@index([userId])
   @@index([status])
 }
@@ -147,6 +150,7 @@ model DailySession {
   @@unique([userId, dayNumber])
   @@index([userId])
   @@index([status])
+  @@index([userId, status])
 }
 
 model PromptAttempt {
@@ -208,6 +212,8 @@ model ProcessedWebhook {
   id        String   @id @default(cuid())
   svixId    String   @unique
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model RateLimitBucket {

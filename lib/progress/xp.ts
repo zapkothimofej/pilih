@@ -17,23 +17,27 @@ export function totalXp(sessions: SessionWithChallenge[]): number {
 }
 
 // Calculates consecutive-day completion streak from newest to oldest.
-// `date` is compared at day granularity in local time.
+// Uses UTC calendar day — session.date is stored in UTC, and comparing
+// at local midnight made the streak skip any session completed near
+// the 00:00-local boundary (a Berlin 01:00-local session lands on the
+// previous UTC day, so local-day comparison reads the wrong bucket).
+// DST transitions are also neutralised because UTC days are exactly
+// 86 400 000 ms.
+const DAY_MS = 86_400_000
+
+function utcDayStart(d: Date): number {
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+}
+
 export function calcStreak(sessions: Array<{ date: Date }>): number {
   if (sessions.length === 0) return 0
 
-  const sorted = [...sessions].sort((a, b) => b.date.getTime() - a.date.getTime())
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const todayDay = utcDayStart(new Date())
+  const uniqueDays = new Set<number>()
+  for (const s of sessions) uniqueDays.add(utcDayStart(s.date))
 
   let streak = 0
-  for (let i = 0; i < sorted.length; i++) {
-    const d = new Date(sorted[i].date)
-    d.setHours(0, 0, 0, 0)
-    const expected = new Date(today)
-    expected.setDate(today.getDate() - i)
-    if (d.getTime() === expected.getTime()) streak++
-    else break
-  }
+  for (let i = 0; uniqueDays.has(todayDay - i * DAY_MS); i++) streak++
   return streak
 }
 

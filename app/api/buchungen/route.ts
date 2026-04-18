@@ -42,12 +42,21 @@ export async function POST(req: Request) {
   const { type, scheduledAt } = parsed.data
   const scheduled = new Date(scheduledAt)
 
-  // Enforce the same 60-minute buffer as the client. UTC vs local time is irrelevant here
-  // because getTime() is absolute milliseconds since epoch.
+  // Enforce a 60-minute lower and a 90-day upper bound. Without the
+  // upper bound a malicious client could create bookings in 2099 that
+  // clutter the UI and the admin calendar indefinitely.
   const MIN_LEAD_MS = 60 * 60_000
-  if (scheduled.getTime() < Date.now() + MIN_LEAD_MS) {
+  const MAX_LEAD_MS = 90 * 24 * 60 * 60_000
+  const offset = scheduled.getTime() - Date.now()
+  if (offset < MIN_LEAD_MS) {
     return NextResponse.json(
       { error: 'Termin muss mindestens 60 Minuten in der Zukunft liegen' },
+      { status: 400 }
+    )
+  }
+  if (offset > MAX_LEAD_MS) {
+    return NextResponse.json(
+      { error: 'Termin muss innerhalb von 90 Tagen liegen' },
       { status: 400 }
     )
   }

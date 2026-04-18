@@ -3,19 +3,20 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
 import { selectDailyChallenges } from '@/lib/adaptive/difficulty'
 import { getCurrentDbUser } from '@/lib/utils/auth'
-import { nextDayNumber } from '@/lib/progress/xp'
-
 export async function GET() {
   const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 
-  const completedSessions = await prisma.dailySession.findMany({
+  // Only the most recent completed session is needed to compute next day
+  // and targetDifficulty — previously this route loaded every completed
+  // session (up to 21 × full challenge JOIN) just to read .at(-1).
+  const lastCompleted = await prisma.dailySession.findFirst({
     where: { userId: user.id, status: 'COMPLETED' },
-    include: { selectedChallenge: true },
-    orderBy: { dayNumber: 'asc' },
+    include: { selectedChallenge: { select: { currentDifficulty: true } } },
+    orderBy: { dayNumber: 'desc' },
   })
 
-  const nextDay = nextDayNumber(completedSessions.map((s) => s.dayNumber))
+  const nextDay = (lastCompleted?.dayNumber ?? 0) + 1
 
   if (nextDay > 21) {
     return NextResponse.json({ done: true, message: 'Alle 21 Tage abgeschlossen!' })
@@ -33,8 +34,6 @@ export async function GET() {
     })
   }
 
-  // Use already-loaded selectedChallenge from completedSessions — no extra DB round-trip
-  const lastCompleted = completedSessions.at(-1)
   const targetDifficulty = lastCompleted?.selectedChallenge?.currentDifficulty ?? 2
 
   const available = await prisma.challenge.findMany({
@@ -49,7 +48,10 @@ export async function GET() {
   }
 
   const requested = Math.min(3, available.length)
-  const selected = selectDailyChallenges(available, targetDifficulty, requested)
+  // Deterministic shuffle keyed by userId + UTC day → refreshing the
+  // page shows the same three cards rather than re-rolling.
+  const seed = `${user.id}:${new Date().toISOString().slice(0, 10)}`
+  const selected = selectDailyChallenges(available, targetDifficulty, requested, seed)
 
   return NextResponse.json({
     day: nextDay,

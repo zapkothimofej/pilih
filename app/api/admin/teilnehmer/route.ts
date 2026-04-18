@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 
 import { prisma } from '@/lib/db/prisma'
-import { getCurrentDbUser } from '@/lib/utils/auth'
+import { requireRole } from '@/lib/utils/auth'
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(0).default(0),
@@ -10,8 +10,12 @@ const querySchema = z.object({
 })
 
 export async function GET(req: NextRequest) {
-  const requestingUser = await getCurrentDbUser()
-  if (!requestingUser || !['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(requestingUser.role)) {
+  // Use the Role-enum-aware helper so future role additions don't
+  // silently bypass this check via a forgotten string array.
+  let requestingUser
+  try {
+    requestingUser = await requireRole(['COMPANY_ADMIN', 'SUPER_ADMIN'])
+  } catch {
     return NextResponse.json({ error: 'Keine Berechtigung' }, { status: 403 })
   }
 
@@ -38,7 +42,10 @@ export async function GET(req: NextRequest) {
         createdAt: true,
         company: { select: { name: true } },
         onboarding: { select: { completedAt: true } },
-        sessions: { where: { status: 'COMPLETED' }, select: { id: true } },
+        // _count with a where-filter gives us just the completed-session
+        // count without materialising the full session set per user
+        // (previously a 500-user × 21-session = 10 500-row N+1 per page).
+        _count: { select: { sessions: { where: { status: 'COMPLETED' } } } },
         certificate: { select: { id: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -54,8 +61,8 @@ export async function GET(req: NextRequest) {
     email: u.email,
     company: u.company?.name ?? '—',
     tier: u.tier,
-    completed: u.sessions.length,
-    progress: Math.round((u.sessions.length / 21) * 100),
+    completed: u._count.sessions,
+    progress: Math.round((u._count.sessions / 21) * 100),
     hasCertificate: !!u.certificate,
     onboarded: !!u.onboarding?.completedAt,
   }))

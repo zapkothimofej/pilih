@@ -2,20 +2,22 @@ import { redirect } from 'next/navigation'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 import { prisma } from '@/lib/db/prisma'
 import { selectDailyChallenges } from '@/lib/adaptive/difficulty'
-import { nextDayNumber } from '@/lib/progress/xp'
 import ChallengeTodayClient from './ChallengeTodayClient'
 
 export default async function ChallengeTodayPage() {
   const user = await getCurrentDbUser()
   if (!user) redirect('/sign-in')
 
-  const completedSessions = await prisma.dailySession.findMany({
+  // Only the most recent completed session is needed here — previously
+  // this page materialised every completed session plus its challenge
+  // just to read the last element.
+  const lastCompleted = await prisma.dailySession.findFirst({
     where: { userId: user.id, status: 'COMPLETED' },
-    orderBy: { dayNumber: 'asc' },
-    include: { selectedChallenge: true },
+    include: { selectedChallenge: { select: { currentDifficulty: true } } },
+    orderBy: { dayNumber: 'desc' },
   })
 
-  const nextDay = nextDayNumber(completedSessions.map((s) => s.dayNumber))
+  const nextDay = (lastCompleted?.dayNumber ?? 0) + 1
   if (nextDay > 21) redirect('/abschluss')
 
   // Heute bereits eine Challenge ausgewählt?
@@ -26,10 +28,7 @@ export default async function ChallengeTodayPage() {
     redirect(`/challenge/${todaySession.selectedChallengeId}?session=${todaySession.id}`)
   }
 
-  // Schwierigkeit bestimmen
-  const lastSession = completedSessions.at(-1)
-  const lastChallenge = lastSession?.selectedChallenge
-  const targetDifficulty = lastChallenge?.currentDifficulty ?? 2
+  const targetDifficulty = lastCompleted?.selectedChallenge?.currentDifficulty ?? 2
 
   const available = await prisma.challenge.findMany({
     where: { userId: user.id, status: 'UPCOMING' },
@@ -37,7 +36,8 @@ export default async function ChallengeTodayPage() {
 
   const poolEmpty = available.length === 0
   const requested = Math.min(3, available.length)
-  const challenges = poolEmpty ? [] : selectDailyChallenges(available, targetDifficulty, requested)
+  const seed = `${user.id}:${new Date().toISOString().slice(0, 10)}`
+  const challenges = poolEmpty ? [] : selectDailyChallenges(available, targetDifficulty, requested, seed)
 
   return (
     <ChallengeTodayClient

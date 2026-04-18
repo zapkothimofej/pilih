@@ -101,23 +101,35 @@ describe('getNextDifficultyWithScore', () => {
     expect(getNextDifficultyWithScore(3, 'TOO_HARD', 2)).toBe(2)
   })
 
-  // 5. JUST_RIGHT + avgScore >= 8 → increases
-  it('JUST_RIGHT with avgScore >= 8 increases difficulty', () => {
-    expect(getNextDifficultyWithScore(3, 'JUST_RIGHT', 8)).toBe(4)
+  // JUST_RIGHT promotes only at avgScore >= 9 — below that we respect
+  // the user's rating and keep the difficulty. 8 used to promote, but
+  // that made JUST_RIGHT@8 degenerate with TOO_EASY@>=6 and left the
+  // user no way to stay put while still scoring well.
+  it('JUST_RIGHT with avgScore 9 increases difficulty (mastery)', () => {
+    expect(getNextDifficultyWithScore(3, 'JUST_RIGHT', 9)).toBe(4)
   })
 
-  // 6. JUST_RIGHT + avgScore <= 4 → decreases
-  it('JUST_RIGHT with avgScore <= 4 decreases difficulty', () => {
-    expect(getNextDifficultyWithScore(3, 'JUST_RIGHT', 4)).toBe(2)
+  it('JUST_RIGHT with avgScore 8 keeps difficulty unchanged (good but not mastery)', () => {
+    expect(getNextDifficultyWithScore(3, 'JUST_RIGHT', 8)).toBe(3)
   })
 
-  // 7. JUST_RIGHT + avgScore = 5 (middle) → stays
-  it('JUST_RIGHT with avgScore = 5 keeps difficulty unchanged', () => {
+  // JUST_RIGHT demotes only at avgScore <= 3. Scoring 4 while rating
+  // the challenge itself JUST_RIGHT is a plausible "still learning"
+  // signal — don't second-guess the user.
+  it('JUST_RIGHT with avgScore 3 decreases difficulty (struggling)', () => {
+    expect(getNextDifficultyWithScore(3, 'JUST_RIGHT', 3)).toBe(2)
+  })
+
+  it('JUST_RIGHT with avgScore 4 keeps difficulty unchanged (still learning)', () => {
+    expect(getNextDifficultyWithScore(3, 'JUST_RIGHT', 4)).toBe(3)
+  })
+
+  // JUST_RIGHT mid-range — respect user's rating
+  it('JUST_RIGHT with avgScore 5 keeps difficulty unchanged', () => {
     expect(getNextDifficultyWithScore(3, 'JUST_RIGHT', 5)).toBe(3)
   })
 
-  // 8. JUST_RIGHT + avgScore = 7 (middle) → stays
-  it('JUST_RIGHT with avgScore = 7 keeps difficulty unchanged', () => {
+  it('JUST_RIGHT with avgScore 7 keeps difficulty unchanged', () => {
     expect(getNextDifficultyWithScore(3, 'JUST_RIGHT', 7)).toBe(3)
   })
 
