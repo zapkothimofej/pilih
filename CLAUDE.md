@@ -27,3 +27,10 @@ This project has a knowledge graph + wiki maintained by the `/obsidian` skill. U
 
 5. **Never edit files in `raw/`.** Sources are immutable.
 <!-- /obsidian-skill -->
+
+## Coding Style (project-specific)
+
+- TypeScript strict mode for all new code
+- ES modules (`import/export`), no CommonJS
+- 2-space indent, single quotes
+- Prefer `const`, prefer named exports

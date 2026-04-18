@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { prisma } from '@/lib/db/prisma'
 import { getCurrentDbUser } from '@/lib/utils/auth'
+import { assertSameOrigin } from '@/lib/utils/csrf'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -15,6 +16,9 @@ const schema = z.object({
 })
 
 export async function POST(req: Request) {
+  const csrf = assertSameOrigin(req)
+  if (csrf) return csrf
+
   const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db/prisma'
 import { getCurrentDbUser } from '@/lib/utils/auth'
+import { assertSameOrigin } from '@/lib/utils/csrf'
 
 const createBookingSchema = z.object({
   type: z.enum(['GROUP_MEETING', 'ONE_ON_ONE']),
@@ -26,6 +27,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const csrf = assertSameOrigin(req)
+  if (csrf) return csrf
+
   const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 

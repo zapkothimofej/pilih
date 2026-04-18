@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db/prisma'
 import { escapeXmlText } from '@/lib/utils/escape'
 import { rateLimitAsync, rateLimitHeaders } from '@/lib/utils/rate-limit'
 import { getCurrentDbUser } from '@/lib/utils/auth'
+import { assertSameOrigin } from '@/lib/utils/csrf'
 import { env } from '@/lib/env'
 
 const client = new Anthropic({ apiKey: env().ANTHROPIC_API_KEY })
@@ -80,6 +81,9 @@ function stripCodeFences(raw: string): string {
 }
 
 export async function POST(req: Request) {
+  const csrf = assertSameOrigin(req)
+  if (csrf) return csrf
+
   const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 

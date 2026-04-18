@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db/prisma'
 import { getNextDifficultyWithScore } from '@/lib/adaptive/difficulty'
 import { getCurrentDbUser } from '@/lib/utils/auth'
+import { assertSameOrigin } from '@/lib/utils/csrf'
 
 const bodySchema = z.object({
   sessionId: z.string().min(1),
@@ -14,6 +15,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrf = assertSameOrigin(req)
+  if (csrf) return csrf
+
   const { id: challengeId } = await params
   const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })

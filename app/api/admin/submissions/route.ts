@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { prisma } from '@/lib/db/prisma'
 import { requireRole } from '@/lib/utils/auth'
+import { assertSameOrigin } from '@/lib/utils/csrf'
 import { logError } from '@/lib/utils/log'
 
 const querySchema = z.object({
@@ -49,6 +50,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: Request) {
+  const csrf = assertSameOrigin(req)
+  if (csrf) return csrf
+
   let admin
   try {
     admin = await requireRole(['COMPANY_ADMIN', 'SUPER_ADMIN'])

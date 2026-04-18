@@ -4,12 +4,16 @@ import { prisma } from '@/lib/db/prisma'
 import { generateChallenges } from '@/lib/ai/challenge-ai'
 import { rateLimitAsync, rateLimitHeaders } from '@/lib/utils/rate-limit'
 import { getCurrentDbUser } from '@/lib/utils/auth'
+import { assertSameOrigin } from '@/lib/utils/csrf'
 
 // 3 requests per hour — challenge generation is expensive (Claude Sonnet, 21 challenges)
 const GENERATE_LIMIT = 3
 const GENERATE_WINDOW_MS = 60 * 60 * 1000
 
-export async function POST() {
+export async function POST(req: Request) {
+  const csrf = assertSameOrigin(req)
+  if (csrf) return csrf
+
   const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 

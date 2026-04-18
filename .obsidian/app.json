@@ -1,0 +1,9 @@
+{
+  "alwaysUpdateLinks": true,
+  "defaultViewMode": "source",
+  "livePreview": true,
+  "promptDelete": true,
+  "attachmentFolderPath": ".attachments",
+  "newFileLocation": "current",
+  "showFrontmatter": true
+}

@@ -1,0 +1,74 @@
+{
+  "searchQuery": "",
+  "showNeighboringNodes": true,
+  "filters": [],
+  "showAttachments": false,
+  "hideOrphans": false,
+  "showTags": true,
+  "groups": [
+    {
+      "query": "path:app/api",
+      "color": "#3B82F6"
+    },
+    {
+      "query": "path:app",
+      "color": "#3B82F6"
+    },
+    {
+      "query": "path:lib",
+      "color": "#10B981"
+    },
+    {
+      "query": "path:components",
+      "color": "#06B6D4"
+    },
+    {
+      "query": "path:prisma",
+      "color": "#F59E0B"
+    },
+    {
+      "query": "path:types",
+      "color": "#F59E0B"
+    },
+    {
+      "query": "path:tests",
+      "color": "#8B5CF6"
+    },
+    {
+      "query": "file:config",
+      "color": "#EC4899"
+    }
+  ],
+  "useThemeColors": false,
+  "colorNode": "#3B82F6",
+  "colorTag": "#9A49E8",
+  "colorAttachment": "#75B63A",
+  "colorLink": "#555555",
+  "colorHighlight": "#FFB800",
+  "backgroundColor": "#000000",
+  "nodeSize": 4.4,
+  "tagNodeSize": 1.2,
+  "attachmentNodeSize": 1.2,
+  "linkThickness": 1.5,
+  "nodeShape": "Sphere",
+  "tagShape": "Tetrahedron",
+  "attachmentShape": "Cube",
+  "showNodeLabels": true,
+  "labelDistance": 180,
+  "labelFadeThreshold": 0.85,
+  "labelTextSize": 2.2,
+  "labelTextColorLight": "#000000",
+  "labelTextColorDark": "#ffffff",
+  "labelBackgroundColor": "#ffffff",
+  "labelBackgroundOpacity": 0.25,
+  "labelOcclusion": true,
+  "useKeyboardControls": true,
+  "keyboardMoveSpeed": 2,
+  "zoomOnClick": true,
+  "rotateSpeed": 1,
+  "panSpeed": 1,
+  "zoomSpeed": 1,
+  "centerForce": 0.27,
+  "repelForce": 10.6,
+  "linkForce": 0.042
+}

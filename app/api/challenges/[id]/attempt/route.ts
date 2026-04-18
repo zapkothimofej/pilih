@@ -7,6 +7,7 @@ import { streamChallengeResponse } from '@/lib/ai/challenge-ai'
 import { judgePrompt } from '@/lib/ai/judge-ai'
 import { rateLimitAsync, rateLimitHeaders } from '@/lib/utils/rate-limit'
 import { getCurrentDbUser } from '@/lib/utils/auth'
+import { assertSameOrigin } from '@/lib/utils/csrf'
 import { logError } from '@/lib/utils/log'
 
 // 20 attempts per hour per user — covers a full day's active work
@@ -28,6 +29,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrf = assertSameOrigin(req)
+  if (csrf) return csrf
+
   const { id: challengeId } = await params
   const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
