@@ -9,8 +9,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen flex flex-col">
+      <a href="#main-content" className="skip-nav">
+        Zum Hauptinhalt springen
+      </a>
       <AppNav user={user} />
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
+      <main id="main-content" className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
         {children}
       </main>
     </div>

@@ -76,6 +76,27 @@ body {
 }
 
 /*
+ * Skip-nav — hidden until focused. Lets keyboard users jump over the
+ * sticky header straight to the main content region on every page.
+ */
+.skip-nav {
+  position: absolute;
+  top: -9999px;
+  left: 1rem;
+  z-index: 100;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-nav:focus {
+  top: 0.75rem;
+}
+
+/*
  * Input focus state. Use .input-accent instead of inline onFocus/onBlur
  * handlers that mutate e.currentTarget.style — those fight with React's
  * virtual DOM and duplicate across every component.
