@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef } from 'react'
+import { gsap } from 'gsap'
+import { useGSAP } from '@gsap/react'
 import { TargetIcon, ChevronDownIcon, StarFilledIcon, StarEmptyIcon } from '@/components/ui/icons'
+import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
 
 interface ChallengeWidgetProps {
   title: string
@@ -16,11 +18,68 @@ export default function ChallengeWidget({
   title, description, promptingTips, category, difficulty,
 }: ChallengeWidgetProps) {
   const [expanded, setExpanded] = useState(true)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const chevronRef = useRef<HTMLDivElement>(null)
+  const reduced = useReducedMotion()
 
   const tips = promptingTips
     .split(/(?=\d+\.\s)/)
     .map(s => s.trim())
     .filter(Boolean)
+
+  // GSAP-driven collapse/expand. Measure target height by letting the
+  // element render, tween to/from that height, and clear the inline
+  // height when open so user can still copy text comfortably.
+  useGSAP(
+    () => {
+      const panel = panelRef.current
+      const chev = chevronRef.current
+      if (!panel) return
+
+      if (reduced) {
+        panel.style.height = expanded ? 'auto' : '0px'
+        panel.style.overflow = expanded ? 'visible' : 'hidden'
+        if (chev) chev.style.transform = expanded ? 'rotate(180deg)' : 'rotate(0deg)'
+        return
+      }
+
+      if (expanded) {
+        gsap.set(panel, { height: 'auto', overflow: 'visible' })
+        const target = panel.offsetHeight
+        gsap.fromTo(
+          panel,
+          { height: 0, opacity: 0, overflow: 'hidden' },
+          {
+            height: target,
+            opacity: 1,
+            duration: 0.4,
+            ease: 'power2.out',
+            onComplete: () => {
+              panel.style.height = 'auto'
+              panel.style.overflow = 'visible'
+            },
+          }
+        )
+      } else {
+        gsap.to(panel, {
+          height: 0,
+          opacity: 0,
+          duration: 0.3,
+          ease: 'power2.in',
+          overflow: 'hidden',
+        })
+      }
+
+      if (chev) {
+        gsap.to(chev, {
+          rotate: expanded ? 180 : 0,
+          duration: 0.25,
+          ease: 'power2.out',
+        })
+      }
+    },
+    { dependencies: [expanded, reduced] }
+  )
 
   return (
     <div
@@ -55,28 +114,16 @@ export default function ChallengeWidget({
             </div>
           </div>
         </div>
-        <motion.div
-          animate={{ rotate: expanded ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-          style={{ color: 'var(--text-muted)' }}
-        >
+        <div ref={chevronRef} style={{ color: 'var(--text-muted)', transformOrigin: 'center' }}>
           <ChevronDownIcon size={14} />
-        </motion.div>
+        </div>
       </button>
 
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div
-              className="px-5 pb-5 space-y-4 border-t pt-4"
-              style={{ borderColor: 'var(--border-subtle)' }}
-            >
+      <div ref={panelRef} style={{ overflow: 'hidden' }}>
+        <div
+          className="px-5 pb-5 space-y-4 border-t pt-4"
+          style={{ borderColor: 'var(--border-subtle)' }}
+        >
               {/* Task */}
               <div>
                 <div
@@ -116,10 +163,8 @@ export default function ChallengeWidget({
                   </ul>
                 </div>
               )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </div>
+      </div>
     </div>
   )
 }
