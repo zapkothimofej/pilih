@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TrophyIcon, CheckIcon } from '@/components/ui/icons'
 
 type Participant = {
@@ -12,13 +12,49 @@ type Participant = {
 const TIER_LABELS: Record<string, string> = { BASE: '399 €', PRO: '499 €', PREMIUM: '999 €' }
 
 export default function AdminClient({
-  participants, stats, isSuperAdmin,
+  participants: initial, stats, totalCount, pageSize, isSuperAdmin,
 }: {
   participants: Participant[]
   stats: { total: number; active: number; finished: number; avgProgress: number }
+  totalCount: number
+  pageSize: number
   isSuperAdmin: boolean
 }) {
   const [search, setSearch] = useState('')
+  const [participants, setParticipants] = useState(initial)
+  const [page, setPage] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(initial.length < totalCount)
+
+  // Search is client-side across already-loaded rows. Pagination loads more
+  // rows from the API and appends them. For large tenants a server-side
+  // search would be more correct, but this keeps the cheap path fast.
+  useEffect(() => {
+    setParticipants(initial)
+    setPage(0)
+    setHasMore(initial.length < totalCount)
+  }, [initial, totalCount])
+
+  async function loadMore() {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const nextPage = page + 1
+      const res = await fetch(`/api/admin/teilnehmer?page=${nextPage}&limit=${pageSize}`)
+      if (!res.ok) throw new Error('Laden fehlgeschlagen')
+      const body = (await res.json()) as {
+        data: Participant[]
+        hasMore: boolean
+      }
+      setParticipants((prev) => [...prev, ...body.data])
+      setPage(nextPage)
+      setHasMore(body.hasMore)
+    } catch {
+      // swallow — user can retry via button
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const filtered = participants.filter(
     p => p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -167,6 +203,23 @@ export default function AdminClient({
           </tbody>
         </table>
       </div>
+
+      {hasMore && (
+        <button
+          onClick={loadMore}
+          disabled={loadingMore}
+          className="w-full py-2.5 rounded-xl text-sm font-medium border transition-opacity disabled:opacity-50"
+          style={{
+            background: 'var(--bg-surface)',
+            borderColor: 'var(--border-default)',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          {loadingMore
+            ? 'Lade…'
+            : `Mehr laden (${participants.length} / ${totalCount})`}
+        </button>
+      )}
     </div>
   )
 }
