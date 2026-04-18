@@ -2,8 +2,20 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // TESTING MODE — Clerk deaktiviert. Pass-through für alle Routen.
-// TODO: Ersetzen durch clerkMiddleware() aus @clerk/nextjs/server sobald echte Clerk-Keys konfiguriert sind.
+// Hard-fail in production so a deploy-flip doesn't silently ship the
+// test-user-1 fallback to real traffic. Replace both branches with
+// clerkMiddleware() from @clerk/nextjs/server when integrating.
 export function middleware(_req: NextRequest) {
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.NEXT_PHASE !== 'phase-production-build' &&
+    process.env.ALLOW_TESTING_AUTH !== 'true'
+  ) {
+    return new NextResponse(
+      'Testing-Mode-Middleware in Produktion aktiv. Deployment abgebrochen.',
+      { status: 503 }
+    )
+  }
   return NextResponse.next()
 }
 
