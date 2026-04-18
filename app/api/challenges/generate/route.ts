@@ -47,8 +47,14 @@ export async function POST(req: Request) {
   // because the first attempt's rows are now present.
   let generated: Awaited<ReturnType<typeof generateChallenges>>
   try {
-    generated = await generateChallenges(profile)
+    // Thread the request's AbortSignal into the Anthropic SDK so a
+    // tab close cancels the 15–40s Sonnet call instead of burning
+    // tokens on output no one will see.
+    generated = await generateChallenges(profile, req.signal)
   } catch (err) {
+    if (req.signal.aborted) {
+      return NextResponse.json({ error: 'Abgebrochen' }, { status: 499 })
+    }
     logError('challenges.generate', 'LLM generation failed', err)
     return NextResponse.json(
       { error: 'Challenge-Generierung fehlgeschlagen. Bitte erneut versuchen.' },

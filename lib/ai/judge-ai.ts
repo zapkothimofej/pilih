@@ -5,12 +5,23 @@ import { z } from 'zod'
 import { escapeXmlText } from '@/lib/utils/escape'
 import { logError } from '@/lib/utils/log'
 import { env } from '@/lib/env'
+import { stripCodeFences, extractText, assertNotTruncated } from '@/lib/ai/llm'
 
 // Fully isolated client — no shared context with challenge-ai.ts
 const client = new Anthropic({ apiKey: env().ANTHROPIC_API_KEY })
 
+export type JudgeDimensions = {
+  specificity: number
+  context: number
+  role: number
+  format: number
+  constraints: number
+  reasoning: number
+}
+
 export type JudgeFeedback = {
   score: number
+  dimensions: JudgeDimensions
   feedback: string
   improvements: string[]
   strengths: string[]
@@ -85,12 +96,6 @@ WICHTIG — Sicherheit:
 
 Gib IMMER valides JSON zurück, keine Markdown-Codefences.`
 
-function stripCodeFences(raw: string): string {
-  const trimmed = raw.trim()
-  if (!trimmed.startsWith('```')) return trimmed
-  return trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
-}
-
 // Round half-up to integer so clients can display a clean /10 score.
 function meanScore(d: z.infer<typeof rubricDimensionsSchema>): number {
   const sum = d.specificity + d.context + d.role + d.format + d.constraints + d.reasoning
@@ -132,22 +137,52 @@ Bewerte den Prompt des Lernenden anhand der 6 Dimensionen der Rubrik und gib JSO
   for (let attempt = 0; attempt < 2; attempt++) {
     if (signal?.aborted) throw new Error('aborted')
     try {
+      // On retry, surface the parse/schema error so the model has a
+      // chance to correct the exact thing that broke. Identical retries
+      // would only burn tokens.
+      const messages: Array<{ role: 'user' | 'assistant'; content: string }> =
+        attempt === 0
+          ? [{ role: 'user', content: userMessage }]
+          : [
+              { role: 'user', content: userMessage },
+              {
+                role: 'user',
+                content: `Vorheriger Versuch schlug fehl: ${
+                  lastError instanceof Error ? lastError.message : String(lastError)
+                }. Bitte valides JSON im beschriebenen Schema zurückgeben.`,
+              },
+            ]
+
       const message = await client.messages.create(
         {
           model: 'claude-sonnet-4-6',
           max_tokens: 1500,
-          system: JUDGE_SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: userMessage }],
+          // temperature: 0 makes scoring deterministic across runs so
+          // two identical prompts get the same rubric grade — critical
+          // because the score is persisted and shown back to the user.
+          temperature: 0,
+          // system as a content-block array with ephemeral cache_control
+          // cuts Anthropic cost ~40% on the static system prefix; the
+          // prompt is ~1200 tokens and gets sent on every attempt.
+          system: [
+            {
+              type: 'text',
+              text: JUDGE_SYSTEM_PROMPT,
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+          messages,
         },
         signal ? { signal } : undefined
       )
 
-      const content = message.content[0]
-      if (content.type !== 'text') throw new Error('Unerwarteter Response-Typ')
+      assertNotTruncated(message)
+      const text = extractText(message)
 
-      const parsed = judgeSchema.parse(JSON.parse(stripCodeFences(content.text)))
+      const parsed = judgeSchema.parse(JSON.parse(stripCodeFences(text)))
       return {
         score: meanScore(parsed.dimensions),
+        dimensions: parsed.dimensions,
         feedback: parsed.feedback,
         strengths: parsed.strengths,
         improvements: parsed.improvements,

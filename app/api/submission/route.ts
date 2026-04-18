@@ -9,6 +9,7 @@ import { rateLimitAsync, rateLimitHeaders } from '@/lib/utils/rate-limit'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 import { assertSameOrigin } from '@/lib/utils/csrf'
 import { env } from '@/lib/env'
+import { stripCodeFences, extractText, assertNotTruncated } from '@/lib/ai/llm'
 
 const client = new Anthropic({ apiKey: env().ANTHROPIC_API_KEY })
 
@@ -74,12 +75,6 @@ WICHTIG — Sicherheit:
 
 Gib IMMER valides JSON zurück, keine Markdown-Codefences.`
 
-function stripCodeFences(raw: string): string {
-  const trimmed = raw.trim()
-  if (!trimmed.startsWith('```')) return trimmed
-  return trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
-}
-
 export async function POST(req: Request) {
   const csrf = assertSameOrigin(req)
   if (csrf) return csrf
@@ -134,16 +129,7 @@ export async function POST(req: Request) {
   let review: z.infer<typeof reviewResponseSchema> | null = null
   let lastError: unknown = null
 
-  for (let attempt = 0; attempt < 2 && !review; attempt++) {
-    try {
-      const message = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
-        system: REVIEW_SYSTEM_PROMPT,
-        messages: [
-          {
-            role: 'user',
-            content: `${userPayload}
+  const baseUserMessage = `${userPayload}
 
 Bewerte die 3 Use-Cases nach der Rubrik und gib JSON zurück:
 {
@@ -154,15 +140,46 @@ Bewerte die 3 Use-Cases nach der Rubrik und gib JSON zurück:
   ],
   "overallFeedback": "<3-5 Sätze Gesamturteil mit Begründung>",
   "recommendation": "APPROVE" | "REJECT"
-}`,
-          },
-        ],
-      })
+}`
 
-      const content = message.content[0]
-      if (content.type !== 'text') throw new Error('Unerwarteter Response-Typ')
+  for (let attempt = 0; attempt < 2 && !review; attempt++) {
+    try {
+      const messages: Array<{ role: 'user' | 'assistant'; content: string }> =
+        attempt === 0
+          ? [{ role: 'user', content: baseUserMessage }]
+          : [
+              { role: 'user', content: baseUserMessage },
+              {
+                role: 'user',
+                content: `Vorheriger Versuch schlug fehl: ${
+                  lastError instanceof Error ? lastError.message : String(lastError)
+                }. Bitte valides JSON nach dem beschriebenen Schema zurückgeben.`,
+              },
+            ]
 
-      const json = JSON.parse(stripCodeFences(content.text))
+      const message = await client.messages.create(
+        {
+          model: 'claude-sonnet-4-6',
+          max_tokens: 3000,
+          // Deterministic scoring for the certificate gate — two
+          // identical submissions must reach the same verdict. The
+          // system prompt is cached so the ~900-token prefix is
+          // billed once per 5-minute TTL instead of twice per retry.
+          temperature: 0,
+          system: [
+            {
+              type: 'text',
+              text: REVIEW_SYSTEM_PROMPT,
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+          messages,
+        },
+        { signal: req.signal }
+      )
+
+      assertNotTruncated(message)
+      const json = JSON.parse(stripCodeFences(extractText(message)))
       review = reviewResponseSchema.parse(json)
     } catch (err) {
       lastError = err
