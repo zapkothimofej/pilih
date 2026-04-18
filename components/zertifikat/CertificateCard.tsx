@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useRef } from 'react'
+import { gsap } from 'gsap'
+import { useGSAP } from '@gsap/react'
 import { DocumentIcon, ShareIcon } from '@/components/ui/icons'
+import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
 
 interface Props {
   userName: string
@@ -13,10 +15,51 @@ interface Props {
 
 export default function CertificateCard({ userName, completedAt, avgScore, linkedInShareUrl }: Props) {
   const [lang, setLang] = useState<'de' | 'en'>('de')
+  const cardRef = useRef<HTMLDivElement>(null)
+  const reduced = useReducedMotion()
 
   const date = new Date(completedAt).toLocaleDateString(lang === 'de' ? 'de-DE' : 'en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   })
+
+  useGSAP(
+    () => {
+      const el = cardRef.current
+      if (!el) return
+
+      if (reduced) {
+        gsap.set(el.querySelectorAll('.cert-stagger'), { opacity: 1, y: 0 })
+        return
+      }
+
+      // Cinematic entrance — corner marks draw in, content elements
+      // stagger up like a reveal on a physical certificate.
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+      tl.from(el, { opacity: 0, scale: 0.9, y: 20, duration: 0.7 })
+        .from(
+          el.querySelectorAll('.cert-corner'),
+          { opacity: 0, scale: 0.4, duration: 0.5, stagger: 0.08, ease: 'back.out(2)' },
+          '-=0.4'
+        )
+        .from(
+          el.querySelectorAll('.cert-stagger'),
+          { opacity: 0, y: 14, duration: 0.5, stagger: 0.08 },
+          '-=0.3'
+        )
+
+      // Slow radial gradient pulse behind the content — keeps the
+      // certificate feeling "live" without distracting.
+      gsap.to('.cert-glow', {
+        opacity: 0.45,
+        scale: 1.05,
+        duration: 2.4,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut',
+      })
+    },
+    { scope: cardRef, dependencies: [lang, reduced] }
+  )
 
   const content = {
     de: {
@@ -61,10 +104,8 @@ export default function CertificateCard({ userName, completedAt, avgScore, linke
       </div>
 
       {/* Certificate */}
-      <motion.div
-        key={lang}
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
+      <div
+        ref={cardRef}
         id="certificate"
         className="relative rounded-2xl border p-8 text-center overflow-hidden"
         style={{
@@ -72,15 +113,25 @@ export default function CertificateCard({ userName, completedAt, avgScore, linke
           borderColor: 'var(--accent-border)',
         }}
       >
+        <div
+          className="cert-glow pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(circle at 50% 0%, rgba(129,140,248,0.25) 0%, transparent 65%)',
+            opacity: 0.2,
+          }}
+          aria-hidden="true"
+        />
+
         {/* Decorative corner marks */}
-        <div className="absolute top-4 left-4 w-6 h-6 border-l-2 border-t-2 rounded-tl" style={{ borderColor: 'var(--accent-border)' }} />
-        <div className="absolute top-4 right-4 w-6 h-6 border-r-2 border-t-2 rounded-tr" style={{ borderColor: 'var(--accent-border)' }} />
-        <div className="absolute bottom-4 left-4 w-6 h-6 border-l-2 border-b-2 rounded-bl" style={{ borderColor: 'var(--accent-border)' }} />
-        <div className="absolute bottom-4 right-4 w-6 h-6 border-r-2 border-b-2 rounded-br" style={{ borderColor: 'var(--accent-border)' }} />
+        <div className="cert-corner absolute top-4 left-4 w-6 h-6 border-l-2 border-t-2 rounded-tl" style={{ borderColor: 'var(--accent-border)' }} />
+        <div className="cert-corner absolute top-4 right-4 w-6 h-6 border-r-2 border-t-2 rounded-tr" style={{ borderColor: 'var(--accent-border)' }} />
+        <div className="cert-corner absolute bottom-4 left-4 w-6 h-6 border-l-2 border-b-2 rounded-bl" style={{ borderColor: 'var(--accent-border)' }} />
+        <div className="cert-corner absolute bottom-4 right-4 w-6 h-6 border-r-2 border-b-2 rounded-br" style={{ borderColor: 'var(--accent-border)' }} />
 
         <div className="relative space-y-6">
           {/* Issuer */}
-          <div>
+          <div className="cert-stagger">
             <div
               className="text-[10px] font-bold uppercase tracking-[0.35em] mb-2"
               style={{ color: 'var(--accent)' }}
@@ -91,13 +142,13 @@ export default function CertificateCard({ userName, completedAt, avgScore, linke
           </div>
 
           {/* Program */}
-          <div className="space-y-1">
+          <div className="cert-stagger space-y-1">
             <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{content.subtitle}</div>
             <div className="text-lg font-bold" style={{ color: 'var(--accent)' }}>{content.program}</div>
           </div>
 
           {/* Recipient */}
-          <div className="space-y-1">
+          <div className="cert-stagger space-y-1">
             <div
               className="text-[10px] uppercase tracking-widest"
               style={{ color: 'var(--text-muted)' }}
@@ -110,7 +161,7 @@ export default function CertificateCard({ userName, completedAt, avgScore, linke
           </div>
 
           {/* Stats */}
-          <div className="flex justify-center gap-10 text-center">
+          <div className="cert-stagger flex justify-center gap-10 text-center">
             <div>
               <div className="text-2xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
                 {avgScore.toFixed(1)}/10
@@ -130,15 +181,15 @@ export default function CertificateCard({ userName, completedAt, avgScore, linke
           </div>
 
           {/* Date */}
-          <div className="space-y-0.5">
+          <div className="cert-stagger space-y-0.5">
             <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{content.date}</div>
             <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{date}</div>
           </div>
 
           {/* Footer */}
-          <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{content.footer}</div>
+          <div className="cert-stagger text-[10px]" style={{ color: 'var(--text-muted)' }}>{content.footer}</div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Actions */}
       <div className="grid grid-cols-2 gap-3">
