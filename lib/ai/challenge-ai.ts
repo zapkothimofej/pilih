@@ -3,8 +3,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 import type { OnboardingProfile } from '@/app/generated/prisma/client'
 import { escapeXmlText } from '@/lib/utils/escape'
+import { env } from '@/lib/env'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const client = new Anthropic({ apiKey: env().ANTHROPIC_API_KEY })
 
 export type GeneratedChallenge = {
   dayNumber: number

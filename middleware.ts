@@ -20,5 +20,9 @@ export function middleware(_req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)'],
+  // `/api/webhooks/*` is excluded so Clerk/Svix signed POSTs still reach
+  // their handlers even while the testing-mode fail-closed guard is
+  // active — those endpoints authenticate via svix signatures, not
+  // session cookies.
+  matcher: ['/((?!_next|api/webhooks|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)'],
 }

@@ -4,9 +4,10 @@ import { z } from 'zod'
 
 import { escapeXmlText } from '@/lib/utils/escape'
 import { logError } from '@/lib/utils/log'
+import { env } from '@/lib/env'
 
 // Fully isolated client — no shared context with challenge-ai.ts
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const client = new Anthropic({ apiKey: env().ANTHROPIC_API_KEY })
 
 export type JudgeFeedback = {
   score: number

@@ -10,21 +10,43 @@ import { z } from 'zod'
  * replacement handles them independently; we validate them here purely
  * to catch typos in code that reads them off process.env.
  */
-const schema = z.object({
-  DATABASE_URL: z.string().url(),
-  ANTHROPIC_API_KEY: z.string().startsWith('sk-ant-', {
-    message: 'ANTHROPIC_API_KEY must start with sk-ant-',
-  }),
-  CLERK_WEBHOOK_SECRET: z.string().optional(),
-  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-})
+const schema = z
+  .object({
+    DATABASE_URL: z.string().url(),
+    ANTHROPIC_API_KEY: z.string().startsWith('sk-ant-', {
+      message: 'ANTHROPIC_API_KEY must start with sk-ant-',
+    }),
+    // Optional in dev/testing-mode but required once Clerk is live. The
+    // cross-field check below enforces presence in production.
+    CLERK_WEBHOOK_SECRET: z.string().optional(),
+    NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    // Only bypass the middleware fail-closed guard from preview deploys.
+    ALLOW_TESTING_AUTH: z.string().optional(),
+    VERCEL_ENV: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.NODE_ENV === 'production' &&
+      data.ALLOW_TESTING_AUTH !== 'true' &&
+      !data.CLERK_WEBHOOK_SECRET
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['CLERK_WEBHOOK_SECRET'],
+        message:
+          'CLERK_WEBHOOK_SECRET is required in production (unless ALLOW_TESTING_AUTH=true for a preview deploy).',
+      })
+    }
+  })
+
+type Env = z.infer<typeof schema>
 
 // Lazy so test runs that don't hit server code still work without
 // every secret wired up.
-let cached: z.infer<typeof schema> | null = null
+let cached: Env | null = null
 
-export function env(): z.infer<typeof schema> {
+export function env(): Env {
   if (cached) return cached
   const parsed = schema.safeParse(process.env)
   if (!parsed.success) {

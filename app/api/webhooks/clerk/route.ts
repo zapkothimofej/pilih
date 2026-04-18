@@ -3,6 +3,13 @@ import { Webhook } from 'svix'
 import { Prisma } from '@/app/generated/prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { logError } from '@/lib/utils/log'
+import { env } from '@/lib/env'
+
+// Reject payloads outside this skew before verifying the signature —
+// Svix timestamps are monotonic on their side, so any drift beyond this
+// is either clock-skew (which the sender fixes) or a replay attempt.
+const SVIX_MAX_SKEW_MS = 5 * 60 * 1000
+const MAX_WEBHOOK_BYTES = 64 * 1024
 
 type ClerkWebhookEvent = {
   type: string
@@ -15,7 +22,7 @@ type ClerkWebhookEvent = {
 }
 
 export async function POST(req: Request) {
-  const webhookSecret = process.env.CLERK_WEBHOOK_SECRET
+  const webhookSecret = env().CLERK_WEBHOOK_SECRET
   if (!webhookSecret) {
     return new Response('Webhook secret fehlt', { status: 500 })
   }
@@ -29,7 +36,24 @@ export async function POST(req: Request) {
     return new Response('Fehlende Svix-Header', { status: 400 })
   }
 
+  const svixTsSeconds = Number(svixTimestamp)
+  if (!Number.isFinite(svixTsSeconds)) {
+    return new Response('Svix-Timestamp ungültig', { status: 400 })
+  }
+  const drift = Math.abs(Date.now() - svixTsSeconds * 1000)
+  if (drift > SVIX_MAX_SKEW_MS) {
+    return new Response('Svix-Timestamp außerhalb der erlaubten Zeitzone', { status: 400 })
+  }
+
+  const declaredLength = Number(req.headers.get('content-length') ?? '0')
+  if (declaredLength > MAX_WEBHOOK_BYTES) {
+    return new Response('Payload zu groß', { status: 413 })
+  }
+
   const body = await req.text()
+  if (body.length > MAX_WEBHOOK_BYTES) {
+    return new Response('Payload zu groß', { status: 413 })
+  }
   const wh = new Webhook(webhookSecret)
 
   let event: ClerkWebhookEvent

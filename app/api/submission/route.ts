@@ -7,8 +7,9 @@ import { prisma } from '@/lib/db/prisma'
 import { escapeXmlText } from '@/lib/utils/escape'
 import { rateLimitAsync, rateLimitHeaders } from '@/lib/utils/rate-limit'
 import { getCurrentDbUser } from '@/lib/utils/auth'
+import { env } from '@/lib/env'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const client = new Anthropic({ apiKey: env().ANTHROPIC_API_KEY })
 
 // 5 submission attempts per hour — cheap to run but prevents abuse
 const SUBMISSION_LIMIT = 5
