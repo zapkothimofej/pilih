@@ -267,10 +267,7 @@ function FormInput({ label, placeholder, value, onChange }: {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-colors"
-        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
-        onFocus={e => (e.target.style.borderColor = 'var(--accent-border)')}
-        onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
+        className="input-accent w-full rounded-xl px-4 py-3 text-sm"
       />
     </div>
   )

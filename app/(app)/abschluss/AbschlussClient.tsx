@@ -216,10 +216,7 @@ export default function AbschlussClient() {
                   onChange={e => update(i as 0 | 1 | 2, field, e.target.value)}
                   placeholder={placeholder}
                   rows={rows}
-                  className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none transition-colors"
-                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
-                  onFocus={e => (e.target.style.borderColor = 'var(--accent-border)')}
-                  onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
+                  className="textarea-accent w-full rounded-xl px-4 py-3 text-sm resize-none"
                 />
                 <div
                   className="text-[10px] tabular-nums text-right"

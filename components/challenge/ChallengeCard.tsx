@@ -30,24 +30,7 @@ export default function ChallengeCard({ challenge, index, onSelect, loading }: C
       <button
         onClick={() => onSelect(challenge.id)}
         disabled={loading}
-        className="w-full text-left group p-5 rounded-2xl border transition-all duration-200 disabled:opacity-40"
-        style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
-        onMouseEnter={e => {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent-border)'
-          ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-elevated)'
-        }}
-        onMouseLeave={e => {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-default)'
-          ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-surface)'
-        }}
-        onFocus={e => {
-          ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent-border)'
-          ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-elevated)'
-        }}
-        onBlur={e => {
-          ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-default)'
-          ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-surface)'
-        }}
+        className="card-hover card-lift w-full text-left group p-5 rounded-2xl disabled:opacity-40"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 space-y-2.5">

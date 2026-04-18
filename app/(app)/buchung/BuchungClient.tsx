@@ -145,10 +145,7 @@ export default function BuchungClient({ bookings: initialBookings }: Props) {
             min={minDateStr}
             value={scheduledAt}
             onChange={e => setScheduledAt(e.target.value)}
-            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none transition-colors [color-scheme:dark]"
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
-            onFocus={e => (e.target.style.borderColor = 'var(--accent-border)')}
-            onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
+            className="input-accent w-full rounded-xl px-4 py-2.5 text-sm [color-scheme:dark]"
           />
           {error && (
             <p className="text-xs" style={{ color: 'var(--error)' }}>{error}</p>

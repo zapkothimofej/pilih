@@ -374,14 +374,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
               disabled={isStreaming}
               aria-label="Prompt eingeben"
               aria-describedby="chat-input-hint"
-              className="flex-1 rounded-xl px-4 py-3 text-sm placeholder-opacity-50 resize-none outline-none transition-colors disabled:opacity-40"
-              style={{
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border-default)',
-                color: 'var(--text-primary)',
-              }}
-              onFocus={e => (e.target.style.borderColor = 'var(--accent-border)')}
-              onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
+              className="textarea-accent flex-1 rounded-xl px-4 py-3 text-sm placeholder-opacity-50 resize-none disabled:opacity-40"
             />
             {isStreaming ? (
               <button

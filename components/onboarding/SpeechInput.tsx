@@ -98,10 +98,7 @@ export default function SpeechInput({ value, onChange, placeholder, rows = 3, la
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           rows={rows}
-          className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none transition-colors pr-12 leading-relaxed"
-          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
-          onFocus={e => (e.target.style.borderColor = 'var(--accent-border)')}
-          onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
+          className="textarea-accent w-full rounded-xl px-4 py-3 text-sm resize-none pr-12 leading-relaxed"
         />
         {isSpeechSupported ? (
           <button

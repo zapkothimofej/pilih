@@ -74,3 +74,62 @@ body {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/*
+ * Input focus state. Use .input-accent instead of inline onFocus/onBlur
+ * handlers that mutate e.currentTarget.style — those fight with React's
+ * virtual DOM and duplicate across every component.
+ */
+.input-accent,
+.textarea-accent {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.input-accent:focus,
+.textarea-accent:focus,
+.input-accent:focus-visible,
+.textarea-accent:focus-visible {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+  outline: none;
+}
+
+/*
+ * Interactive card/button surface with consistent hover + focus feedback.
+ * .card-hover raises elevation on pointer; :focus-visible also triggers
+ * the elevated state so keyboard users get the same affordance without
+ * the forced outline ring fighting with the card border.
+ */
+.card-hover {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+.card-hover:hover,
+.card-hover:focus-visible {
+  background: var(--bg-elevated);
+  border-color: var(--accent-border);
+}
+.card-hover:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+/* Optional magnetic micro-lift on a card — used sparingly for hero CTAs. */
+.card-hover.card-lift:hover,
+.card-hover.card-lift:focus-visible {
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-hover,
+  .card-hover.card-lift {
+    transition: none;
+  }
+  .card-hover.card-lift:hover,
+  .card-hover.card-lift:focus-visible {
+    transform: none;
+  }
+}
