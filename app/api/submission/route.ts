@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 import { prisma } from '@/lib/db/prisma'
 import { escapeXmlText } from '@/lib/utils/escape'
-import { rateLimit, rateLimitHeaders } from '@/lib/utils/rate-limit'
+import { rateLimitAsync, rateLimitHeaders } from '@/lib/utils/rate-limit'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
   const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 
-  const rl = rateLimit(`submission:${user.id}`, SUBMISSION_LIMIT, SUBMISSION_WINDOW_MS)
+  const rl = await rateLimitAsync(`submission:${user.id}`, SUBMISSION_LIMIT, SUBMISSION_WINDOW_MS)
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Zu viele Einreichungen. Bitte warte eine Stunde.' },

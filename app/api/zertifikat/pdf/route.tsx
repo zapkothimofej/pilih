@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 import { prisma } from '@/lib/db/prisma'
-import { rateLimit } from '@/lib/utils/rate-limit'
+import { rateLimitAsync } from '@/lib/utils/rate-limit'
 import { logError } from '@/lib/utils/log'
 import CertificatePdf from '@/components/zertifikat/CertificatePdf'
 
@@ -15,7 +15,7 @@ export async function GET() {
   const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const rl = rateLimit(`pdf:${user.id}`, PDF_LIMIT, PDF_WINDOW_MS)
+  const rl = await rateLimitAsync(`pdf:${user.id}`, PDF_LIMIT, PDF_WINDOW_MS)
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Zu viele Anfragen. Bitte in einer Stunde erneut versuchen.' },

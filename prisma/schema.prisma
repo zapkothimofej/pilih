@@ -209,3 +209,11 @@ model ProcessedWebhook {
   svixId    String   @unique
   createdAt DateTime @default(now())
 }
+
+model RateLimitBucket {
+  key      String   @id
+  count    Int
+  resetAt  DateTime
+
+  @@index([resetAt])
+}

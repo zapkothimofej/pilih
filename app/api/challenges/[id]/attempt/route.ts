@@ -5,7 +5,7 @@ import { Prisma } from '@/app/generated/prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { streamChallengeResponse } from '@/lib/ai/challenge-ai'
 import { judgePrompt } from '@/lib/ai/judge-ai'
-import { rateLimit, rateLimitHeaders } from '@/lib/utils/rate-limit'
+import { rateLimitAsync, rateLimitHeaders } from '@/lib/utils/rate-limit'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 import { logError } from '@/lib/utils/log'
 
@@ -34,7 +34,7 @@ export async function POST(
   const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
 
-  const rl = rateLimit(`attempt:${user.id}`, ATTEMPT_LIMIT, ATTEMPT_WINDOW_MS)
+  const rl = await rateLimitAsync(`attempt:${user.id}`, ATTEMPT_LIMIT, ATTEMPT_WINDOW_MS)
   if (!rl.allowed) {
     return new Response(
       JSON.stringify({ error: 'Zu viele Anfragen. Bitte warte eine Stunde.' }),

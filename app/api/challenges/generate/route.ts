@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { prisma } from '@/lib/db/prisma'
 import { generateChallenges } from '@/lib/ai/challenge-ai'
-import { rateLimit, rateLimitHeaders } from '@/lib/utils/rate-limit'
+import { rateLimitAsync, rateLimitHeaders } from '@/lib/utils/rate-limit'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 
 // 3 requests per hour — challenge generation is expensive (Claude Sonnet, 21 challenges)
@@ -13,7 +13,7 @@ export async function POST() {
   const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
 
-  const rl = rateLimit(`generate:${user.id}`, GENERATE_LIMIT, GENERATE_WINDOW_MS)
+  const rl = await rateLimitAsync(`generate:${user.id}`, GENERATE_LIMIT, GENERATE_WINDOW_MS)
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Zu viele Anfragen. Bitte warte eine Stunde.' },
