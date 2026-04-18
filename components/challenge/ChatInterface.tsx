@@ -2,13 +2,15 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { gsap } from 'gsap'
+import { useGSAP } from '@gsap/react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { toast } from 'sonner'
 import JudgeFeedbackPopup from './JudgeFeedbackPopup'
 import DifficultyRating from './DifficultyRating'
 import { SendIcon, BotIcon, CheckIcon, CloseIcon } from '@/components/ui/icons'
+import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
 
 type Message = { role: 'user' | 'assistant'; content: string }
 type JudgeFeedback = {
@@ -43,10 +45,12 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
   const [ratingLoading, setRatingLoading] = useState(false)
   const [attempts, setAttempts] = useState(previousAttempts.length)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const logRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isMountedRef = useRef(true)
+  const reduced = useReducedMotion()
 
   useEffect(() => {
     return () => { isMountedRef.current = false }
@@ -55,6 +59,26 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isStreaming])
+
+  // GSAP-based entrance for the newest message bubble. We animate only
+  // the last direct child so streaming updates don't re-run the tween.
+  useGSAP(
+    () => {
+      const root = logRef.current
+      if (!root || reduced) return
+      const bubbles = root.querySelectorAll<HTMLElement>('.chat-msg')
+      const last = bubbles[bubbles.length - 1]
+      if (!last || last.dataset.animated === 'true') return
+      last.dataset.animated = 'true'
+      gsap.from(last, {
+        y: 10,
+        opacity: 0,
+        duration: 0.35,
+        ease: 'power2.out',
+      })
+    },
+    { dependencies: [messages.length, reduced] }
+  )
 
   useEffect(() => {
     if (!isStreaming && !showRating) textareaRef.current?.focus()
@@ -244,7 +268,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
   return (
     <div className="flex flex-col">
       {/* Messages */}
-      <div role="log" aria-live="polite" aria-label="Chat-Verlauf" className="space-y-4 pb-4 min-h-[280px] max-h-[460px] overflow-y-auto">
+      <div ref={logRef} role="log" aria-live="polite" aria-label="Chat-Verlauf" className="space-y-4 pb-4 min-h-[280px] max-h-[460px] overflow-y-auto">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-10 gap-2">
             <div
@@ -270,11 +294,9 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
             judgeFeedback === null &&
             msg.content.length > 0
           return (
-            <motion.div
+            <div
               key={i}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex items-start gap-2.5 group ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+              className={`chat-msg flex items-start gap-2.5 group ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
             >
               {/* Avatar */}
               {msg.role === 'assistant' && (
@@ -329,7 +351,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
                   </button>
                 )}
               </div>
-            </motion.div>
+            </div>
           )
         })}
         <div ref={bottomRef} />

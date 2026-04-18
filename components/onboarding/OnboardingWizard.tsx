@@ -1,9 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { gsap } from 'gsap'
+import { useGSAP } from '@gsap/react'
 import SpeechInput from './SpeechInput'
 import { CheckIcon, ArrowRightIcon, ArrowLeftIcon } from '@/components/ui/icons'
+import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
 
 type Step = 1 | 2 | 3
 
@@ -42,6 +45,25 @@ export default function OnboardingWizard() {
     aiToolsUsed: [],
     aiFrequency: '',
   })
+  const stepScope = useRef<HTMLDivElement>(null)
+  const reduced = useReducedMotion()
+
+  // Slide step content in when the user moves forward/back. Scoped
+  // selector targets only the active step's direct children so the
+  // step indicator stays put.
+  useGSAP(
+    () => {
+      if (!stepScope.current || reduced) return
+      gsap.from('.onb-step > *', {
+        y: 14,
+        opacity: 0,
+        duration: 0.45,
+        ease: 'power2.out',
+        stagger: 0.06,
+      })
+    },
+    { scope: stepScope, dependencies: [step, reduced] }
+  )
 
   function set<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -78,7 +100,7 @@ export default function OnboardingWizard() {
   const canSubmit = form.dailyDescription.length >= 10
 
   return (
-    <div className="max-w-xl mx-auto">
+    <div ref={stepScope} className="max-w-xl mx-auto">
       {/* Step indicator */}
       <div className="flex items-center gap-0 mb-8">
         {([1, 2, 3] as Step[]).map((s) => (
@@ -114,7 +136,7 @@ export default function OnboardingWizard() {
 
       {/* Step 1 */}
       {step === 1 && (
-        <div className="space-y-5">
+        <div key="s1" className="onb-step space-y-5">
           <div>
             <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Wer bist du?</h2>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
@@ -134,7 +156,7 @@ export default function OnboardingWizard() {
 
       {/* Step 2 */}
       {step === 2 && (
-        <div className="space-y-6">
+        <div key="s2" className="onb-step space-y-6">
           <div>
             <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Dein KI-Kenntnisstand</h2>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Ehrlich — kein Level ist falsch.</p>
@@ -220,7 +242,7 @@ export default function OnboardingWizard() {
 
       {/* Step 3 */}
       {step === 3 && (
-        <div className="space-y-5">
+        <div key="s3" className="onb-step space-y-5">
           <div>
             <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Dein Arbeitsalltag</h2>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
