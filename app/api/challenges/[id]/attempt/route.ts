@@ -80,14 +80,25 @@ export async function POST(
   // nur vom challenge.description und userPrompt ab — startet also vor der
   // Stream-Loop und läuft während Haiku streamt. Wir awaiten ihn erst am
   // Ende, sodass sich die Sonnet-Latenz mit der Haiku-Latenz überlappt.
+  // judgeAbort lets us cancel the sonnet request as soon as the client
+  // disconnects, which avoids paying for tokens no one will see AND the
+  // unhandled-rejection that would otherwise fire when the promise
+  // settles after the stream has returned.
+  const judgeAbort = new AbortController()
+  req.signal.addEventListener('abort', () => judgeAbort.abort())
   const encoder = new TextEncoder()
   let fullResponse = ''
-  const judgePromise = judgePrompt(challenge.description, userPrompt).catch(
-    (err) => {
-      logError('attempt', 'judge failed in parallel', err)
-      throw err
-    }
-  )
+  const judgePromise = judgePrompt(
+    challenge.description,
+    userPrompt,
+    judgeAbort.signal
+  ).catch((err) => {
+    logError('attempt', 'judge failed in parallel', err)
+    throw err
+  })
+  // Attach a no-op .catch so an unconsumed rejection (e.g. when the
+  // caller aborts mid-flight) doesn't trigger node's unhandledRejection.
+  judgePromise.catch(() => {})
 
   const stream = new ReadableStream({
     async start(controller) {

@@ -98,7 +98,8 @@ function meanScore(d: z.infer<typeof rubricDimensionsSchema>): number {
 
 export async function judgePrompt(
   challengeDescription: string,
-  userPrompt: string
+  userPrompt: string,
+  signal?: AbortSignal
 ): Promise<JudgeFeedback> {
   const tag = randomTag()
   const userMessage = `<challenge_${tag}>
@@ -128,13 +129,17 @@ Bewerte den Prompt des Lernenden anhand der 6 Dimensionen der Rubrik und gib JSO
 
   let lastError: unknown = null
   for (let attempt = 0; attempt < 2; attempt++) {
+    if (signal?.aborted) throw new Error('aborted')
     try {
-      const message = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1500,
-        system: JUDGE_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userMessage }],
-      })
+      const message = await client.messages.create(
+        {
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1500,
+          system: JUDGE_SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: userMessage }],
+        },
+        signal ? { signal } : undefined
+      )
 
       const content = message.content[0]
       if (content.type !== 'text') throw new Error('Unerwarteter Response-Typ')
