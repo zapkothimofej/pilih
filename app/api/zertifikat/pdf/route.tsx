@@ -32,6 +32,7 @@ export async function GET() {
     : 0
 
   let buffer: Buffer
+  let timer: ReturnType<typeof setTimeout> | undefined
   try {
     const rendered = renderToBuffer(
       <CertificatePdf
@@ -40,13 +41,18 @@ export async function GET() {
         avgScore={avgScore}
       />
     )
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('PDF-Generierung Timeout')), 30_000)
-    )
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('PDF-Generierung Timeout')), 30_000)
+    })
     buffer = await Promise.race([rendered, timeout])
   } catch (err) {
     logError('pdf', 'PDF generation failed', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: 'PDF konnte nicht generiert werden' }, { status: 500 })
+  } finally {
+    // Clear the setTimeout so the timer handle and its captured reject
+    // closure don't linger for 30s after a successful render — otherwise
+    // repeated downloads would leak Timeout objects under load.
+    if (timer) clearTimeout(timer)
   }
 
   const filename = `PILIH-Zertifikat-${user.name.replace(/\s+/g, '-')}.pdf`
