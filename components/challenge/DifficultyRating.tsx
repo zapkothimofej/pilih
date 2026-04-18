@@ -64,25 +64,17 @@ export default function DifficultyRating({ onRate, loading }: DifficultyRatingPr
             onClick={() => onRate(opt.value)}
             disabled={loading}
             aria-label={`Schwierigkeit: ${opt.label}`}
-            className="flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border transition-all disabled:opacity-40 text-sm"
-            style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-            onMouseEnter={e => {
-              Object.assign((e.currentTarget as HTMLButtonElement).style, opt.activeStyle)
-            }}
-            onMouseLeave={e => {
-              const el = e.currentTarget as HTMLButtonElement
-              el.style.background = 'var(--bg-elevated)'
-              el.style.borderColor = 'var(--border-default)'
-              el.style.color = 'var(--text-secondary)'
-            }}
-            onFocus={e => {
-              Object.assign((e.currentTarget as HTMLButtonElement).style, opt.activeStyle)
-            }}
-            onBlur={e => {
-              const el = e.currentTarget as HTMLButtonElement
-              el.style.background = 'var(--bg-elevated)'
-              el.style.borderColor = 'var(--border-default)'
-              el.style.color = 'var(--text-secondary)'
+            className="rating-option flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border transition-colors disabled:opacity-40 text-sm"
+            data-value={opt.value}
+            style={{
+              // Custom props let the pseudo-classes in globals.css pick up
+              // the per-option active palette without repeating handlers.
+              ['--rating-active-bg' as string]: opt.activeStyle.background,
+              ['--rating-active-border' as string]: opt.activeStyle.borderColor,
+              ['--rating-active-color' as string]: opt.activeStyle.color,
+              background: 'var(--bg-elevated)',
+              borderColor: 'var(--border-default)',
+              color: 'var(--text-secondary)',
             }}
           >
             <span>{opt.icon}</span>

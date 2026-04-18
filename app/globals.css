@@ -133,3 +133,12 @@ body {
     transform: none;
   }
 }
+
+/* Difficulty-rating buttons — per-option active palette via custom props. */
+.rating-option:hover,
+.rating-option:focus-visible {
+  background: var(--rating-active-bg) !important;
+  border-color: var(--rating-active-border) !important;
+  color: var(--rating-active-color) !important;
+  outline: none;
+}
