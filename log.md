@@ -26,3 +26,12 @@ Touched: none
 
 ## [2026-04-18 00:39] session | fix all 30 review dimensions (phases A-H)
 Touched: none
+
+## [2026-04-18 23:50] session | autonomous /review-cool fix-all + GSAP design overhaul
+Touched: none
+Summary:
+- 25-dim review produced; 30 commits pushed across 14 push-batches.
+- Security/auth: hardcoded test-user-1 removed from submission/buchungen/zertifikat routes, fail-closed middleware in prod, webhook idempotency tx, random-nonce envelopes for all three LLM boundaries, server-recomputed submission verdict, CSP+HSTS+Permissions headers, zod-validated env.
+- Perf/correctness: relative-delta adaptive difficulty, paginated admin + aggregates, parallel judge stream, chat-history client cap, PDF timeout leak fix, konfetti reduced-motion + cleanup, PostgreSQL-backed rate limiter w/ atomic create-or-increment, certificate URL wiring, centralized XP/level/streak lib, prisma generate in build + postinstall.
+- Testing: 47→59 tests (progress-xp, rate-limit-async, env).
+- UX/GSAP: gsap@3.15 + @gsap/react installed. Cinematic landing (orb drift + scroll-trigger), animated stats (DayRing arc, shimmer XPBar, pulse streak), magnetic challenge cards w/ quickTo, orbit-spinner generating screen, cinematic certificate reveal, staggered 21-day calendar, GSAP accordion widget, sliding pill nav indicator, admin count-up, dashboard CTA sheen, onboarding step stagger, chat-bubble entrance, skip-nav, loading + not-found pages, OG metadata + theme-color.
