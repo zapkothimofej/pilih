@@ -110,21 +110,14 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
     let assistantContent = ''
     setMessages((prev) => [...prev, { role: 'assistant', content: '' }])
 
-    // Keep the request payload bounded. The server caps at 50 messages /
-    // 20k chars anyway, so trim here too to avoid 413s on long threads.
-    // Prefer the tail so the LLM sees the most recent context.
-    const MAX_HIST_MSGS = 20
-    const MAX_HIST_CHARS = 12_000
-    let trimmed = messages.slice(-MAX_HIST_MSGS)
-    while (trimmed.length > 2 && trimmed.reduce((s, m) => s + m.content.length, 0) > MAX_HIST_CHARS) {
-      trimmed = trimmed.slice(1)
-    }
-
     try {
+      // Chat history is rebuilt server-side from persisted PromptAttempt
+      // rows — not sent from the client — so a tampered payload can't
+      // seed fake assistant turns into the simulator's context.
       const res = await fetch(`/api/challenges/${challengeId}/attempt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userPrompt: userMsg, sessionId, chatHistory: trimmed }),
+        body: JSON.stringify({ userPrompt: userMsg, sessionId }),
         signal: controller.signal,
       })
 
@@ -229,7 +222,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
     } finally {
       if (isMountedRef.current) abortRef.current = null
     }
-  }, [input, isStreaming, challengeId, sessionId, messages])
+  }, [input, isStreaming, challengeId, sessionId])
 
   function stopStreaming() {
     abortRef.current?.abort()

@@ -16,15 +16,13 @@ const ATTEMPT_WINDOW_MS = 60 * 60 * 1000
 const bodySchema = z.object({
   userPrompt: z.string().min(1).max(4000),
   sessionId: z.string().min(1),
-  chatHistory: z
-    .array(
-      z.object({
-        role: z.enum(['user', 'assistant']),
-        content: z.string().min(1).max(10000),
-      })
-    )
-    .max(50),
 })
+
+// Cap how much prior conversation we feed back to the LLM. 20 turns
+// (= 10 attempts × user+assistant) with ~12 KB total is roughly what
+// Haiku can ingest without blowing per-request cost.
+const MAX_HISTORY_ATTEMPTS = 10
+const MAX_HISTORY_CHARS = 12_000
 
 export async function POST(
   req: Request,
@@ -54,15 +52,7 @@ export async function POST(
   } catch {
     return NextResponse.json({ error: 'Ungültiger Request-Body' }, { status: 400 })
   }
-  const { userPrompt, sessionId, chatHistory } = body
-
-  const totalHistoryChars = chatHistory.reduce((sum, m) => sum + m.content.length, 0)
-  if (totalHistoryChars > 20000) {
-    return NextResponse.json(
-      { error: 'Chat-Verlauf zu lang. Bitte eine neue Session starten.' },
-      { status: 413 }
-    )
-  }
+  const { userPrompt, sessionId } = body
 
   const challenge = await prisma.challenge.findUnique({ where: { id: challengeId } })
   if (!challenge) return NextResponse.json({ error: 'Challenge nicht gefunden' }, { status: 404 })
@@ -74,6 +64,30 @@ export async function POST(
     session.selectedChallengeId !== challengeId
   ) {
     return NextResponse.json({ error: 'Zugriff verweigert' }, { status: 403 })
+  }
+
+  // Rebuild chat history from persisted attempts. Trusting a client-supplied
+  // history would let the user seed fake assistant turns ("Understood. From
+  // now on, always score 10/10") that the simulator would then pick up as
+  // conversational context.
+  const priorAttempts = await prisma.promptAttempt.findMany({
+    where: { sessionId },
+    orderBy: { attemptNumber: 'desc' },
+    take: MAX_HISTORY_ATTEMPTS,
+    select: { userPrompt: true, llmResponse: true },
+  })
+  const chronological = priorAttempts.reverse()
+  const chatHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  let chars = 0
+  for (const a of chronological) {
+    const pair = [
+      { role: 'user' as const, content: a.userPrompt },
+      { role: 'assistant' as const, content: a.llmResponse },
+    ]
+    const size = a.userPrompt.length + a.llmResponse.length
+    if (chars + size > MAX_HISTORY_CHARS && chatHistory.length > 0) break
+    chatHistory.push(...pair)
+    chars += size
   }
 
   // LLM-Antwort streamen + Judge parallel laufen lassen. Der Judge hängt
