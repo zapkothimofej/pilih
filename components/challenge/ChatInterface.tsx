@@ -325,7 +325,6 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
                     <CopyButton
                       text={msg.content}
                       className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      variant="message"
                     />
                   )}
                 </div>
@@ -588,7 +587,6 @@ function buildMarkdownComponents(role: 'user' | 'assistant') {
         >
           <CopyButton
             text={raw}
-            variant="codeblock"
             className="absolute top-1.5 right-1.5"
           />
           <pre
@@ -626,11 +624,11 @@ function extractCodeText(children: ReactNode): string {
 function CopyButton({
   text,
   className,
-  variant,
 }: {
   text: string
   className?: string
-  variant: 'message' | 'codeblock'
+  // variant used to branch copy-affordance styling; now fully handled
+  // by the passed className from callers, so the prop was dead weight.
 }) {
   const [copied, setCopied] = useState(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { gsap } from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { BotIcon, CloseIcon, CheckIcon, ArrowRightIcon } from '@/components/ui/icons'
@@ -25,8 +24,30 @@ const FOCUSABLE_SELECTOR =
 
 export default function JudgeFeedbackPopup({ feedback, onClose }: JudgeFeedbackPopupProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const backdropRef = useRef<HTMLDivElement>(null)
   const closeBtnRef = useRef<HTMLButtonElement>(null)
   const previouslyFocusedRef = useRef<HTMLElement | null>(null)
+  const popupReduced = useReducedMotion()
+
+  // GSAP entrance animation replacing framer-motion. Honours reduced-
+  // motion: just snap in without scale/y transitions for users who
+  // opted out (previous framer wrapper ran the springs regardless).
+  useGSAP(
+    () => {
+      if (!feedback) return
+      if (popupReduced) {
+        gsap.set([backdropRef.current, dialogRef.current], { opacity: 1, scale: 1, y: 0 })
+        return
+      }
+      gsap.fromTo(backdropRef.current, { opacity: 0 }, { opacity: 1, duration: 0.2 })
+      gsap.fromTo(
+        dialogRef.current,
+        { opacity: 0, scale: 0.94, y: 12 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.28, ease: 'back.out(1.2)' }
+      )
+    },
+    { dependencies: [!!feedback, popupReduced] }
+  )
 
   // Save + restore focus, focus close button on open, and trap Tab inside.
   useEffect(() => {
@@ -35,7 +56,7 @@ export default function JudgeFeedbackPopup({ feedback, onClose }: JudgeFeedbackP
     previouslyFocusedRef.current =
       (typeof document !== 'undefined' && (document.activeElement as HTMLElement)) || null
 
-    // Focus the close button on the next frame so framer-motion has mounted it.
+    // Focus the close button on the next frame.
     const raf = requestAnimationFrame(() => {
       closeBtnRef.current?.focus()
     })
@@ -83,30 +104,24 @@ export default function JudgeFeedbackPopup({ feedback, onClose }: JudgeFeedbackP
     }
   }, [feedback, onClose])
 
+  if (!feedback) return null
+
   return (
-    <AnimatePresence>
-      {feedback && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'var(--overlay)', backdropFilter: 'var(--overlay-blur)' }}
-          onClick={onClose}
-        >
-          <motion.div
-            ref={dialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="judge-popup-title"
-            initial={{ opacity: 0, scale: 0.94, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 6 }}
-            transition={{ type: 'spring', damping: 30, stiffness: 340 }}
-            onClick={e => e.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl overflow-hidden border"
-            style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
-          >
+    <div
+      ref={backdropRef}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'var(--overlay)', backdropFilter: 'var(--overlay-blur)', opacity: 0 }}
+      onClick={onClose}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="judge-popup-title"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm rounded-2xl overflow-hidden border"
+        style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)', opacity: 0 }}
+      >
             {/* Header */}
             <div
               className="flex items-center justify-between px-5 py-4 border-b"
@@ -243,10 +258,8 @@ export default function JudgeFeedbackPopup({ feedback, onClose }: JudgeFeedbackP
                 Verstanden
               </button>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+      </div>
+    </div>
   )
 }
 

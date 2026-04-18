@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server'
 // Hard-fail in production so a deploy-flip doesn't silently ship the
 // test-user-1 fallback to real traffic. Replace both branches with
 // clerkMiddleware() from @clerk/nextjs/server when integrating.
-export function middleware(_req: NextRequest) {
+export function middleware(_req: NextRequest): NextResponse {
   if (
     process.env.NODE_ENV === 'production' &&
     process.env.NEXT_PHASE !== 'phase-production-build' &&

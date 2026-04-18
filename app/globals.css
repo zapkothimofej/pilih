@@ -14,10 +14,12 @@
   --border-default: #2e323e;
   --border-strong: #3a3f4e;
 
-  /* Text */
+  /* Text — --text-muted was #52556b which failed WCAG AA on --bg-surface
+     (~3.8:1). Bumped to #7a7f95 (~4.6:1 on #18191d, ~4.3:1 on #202228)
+     for body copy without losing the muted visual hierarchy. */
   --text-primary: #f0f0f4;
   --text-secondary: #9496ae;
-  --text-muted: #52556b;
+  --text-muted: #7a7f95;
 
   /* Accent — cool indigo */
   --accent: #818cf8;
@@ -199,4 +201,42 @@ body {
 @keyframes cta-sheen-sweep {
   0%, 70%   { transform: translateX(-100%); }
   80%, 100% { transform: translateX(200%); }
+}
+
+/*
+ * Disable Tailwind's built-in keyframe utilities under reduced-motion.
+ * The .animate-bounce / .animate-pulse / .animate-spin / .animate-ping
+ * classes don't respect the media query by default and were leaking
+ * through in the chat streaming dots, recording indicator, and global
+ * loading spinner.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-bounce,
+  .animate-pulse,
+  .animate-spin,
+  .animate-ping {
+    animation: none !important;
+  }
+  /* Tailwind's smooth-scroll utility is also problematic for vestibular
+     disorders — tilt it back to instant. */
+  html {
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Ensure every tappable control meets the iOS 44×44 tap-target guideline
+ * without having to audit each icon-button individually. Buttons that
+ * opt out with .tap-small keep their compact hit area (e.g. inline
+ * textarea icons where the surrounding row IS the target).
+ */
+button:not(.tap-small):not([type="submit"]):not([type="reset"]),
+a[role="button"]:not(.tap-small) {
+  min-height: 44px;
+  min-width: 44px;
+}
+button[class*="icon-"]:not(.tap-small),
+.icon-button:not(.tap-small) {
+  min-height: 44px;
+  min-width: 44px;
 }

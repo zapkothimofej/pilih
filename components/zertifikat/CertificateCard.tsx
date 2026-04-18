@@ -29,6 +29,7 @@ export default function CertificateCard({ userName, completedAt, avgScore, linke
 
       if (reduced) {
         gsap.set(el.querySelectorAll('.cert-stagger'), { opacity: 1, y: 0 })
+        gsap.set(el.querySelector('.cert-glow'), { opacity: 0.25 })
         return
       }
 
@@ -47,9 +48,11 @@ export default function CertificateCard({ userName, completedAt, avgScore, linke
           '-=0.3'
         )
 
-      // Slow radial gradient pulse behind the content — keeps the
-      // certificate feeling "live" without distracting.
-      gsap.to('.cert-glow', {
+      // Slow radial gradient pulse behind the content. Kept inside the
+      // non-reduced branch so vestibular-sensitive users don't see
+      // infinite movement in the corner of their eye — previously this
+      // ran regardless of the reduced-motion flag.
+      gsap.to(el.querySelector('.cert-glow'), {
         opacity: 0.45,
         scale: 1.05,
         duration: 2.4,

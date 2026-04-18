@@ -12,6 +12,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Claude Code private worktrees + Obsidian vault plugins — not
+    // project source, and the bundled plugin JS is multi-MB of
+    // minified output that deoptimises Babel's styling.
+    ".claude/**",
+    ".obsidian/**",
+    // Prisma-generated client
+    "app/generated/**",
   ]),
 ]);
 

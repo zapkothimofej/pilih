@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { requireRole } from '@/lib/utils/auth'
 import { prisma } from '@/lib/db/prisma'
-import { TrophyIcon, BarChartIcon, BotIcon } from '@/components/ui/icons'
+import { TrophyIcon, BotIcon } from '@/components/ui/icons'
 
 export default async function SuperAdminPage() {
   try {
@@ -11,8 +11,19 @@ export default async function SuperAdminPage() {
   }
 
   const [companies, totalUsers, certCount] = await Promise.all([
+    // _count with per-user aggregates avoids materialising every user's
+    // session list per company — the previous shape was an N×M×(21)
+    // query that grew linearly with total Yesterday Academy traffic.
     prisma.company.findMany({
-      include: { users: { include: { sessions: { where: { status: 'COMPLETED' } }, certificate: true } } },
+      include: {
+        users: {
+          select: {
+            id: true,
+            _count: { select: { sessions: { where: { status: 'COMPLETED' } } } },
+            certificate: { select: { id: true } },
+          },
+        },
+      },
     }),
     prisma.user.count({ where: { role: 'PARTICIPANT' } }),
     prisma.certificate.count(),
@@ -56,9 +67,9 @@ export default async function SuperAdminPage() {
           Firmen
         </h2>
         {companies.map(company => {
-          const participants = company.users.filter(u => u.sessions)
+          const participants = company.users
           const avgProgress = participants.length
-            ? Math.round(participants.reduce((a, u) => a + u.sessions.length, 0) / participants.length / 21 * 100)
+            ? Math.round(participants.reduce((a, u) => a + u._count.sessions, 0) / participants.length / 21 * 100)
             : 0
           const certs = participants.filter(u => u.certificate).length
 

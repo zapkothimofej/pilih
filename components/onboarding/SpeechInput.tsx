@@ -32,11 +32,16 @@ export default function SpeechInput({ value, onChange, placeholder, rows = 3, la
   }, [])
 
   type SpeechRecognitionCtor = new () => SpeechRecognition
-  const getSR = (): SpeechRecognitionCtor | undefined =>
-    (window as Window & { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor })
-      .SpeechRecognition ??
-    (window as Window & { webkitSpeechRecognition?: SpeechRecognitionCtor })
-      .webkitSpeechRecognition
+  // Stable helper — defined with useCallback so the startListening
+  // useCallback dep list doesn't flag it as missing on each render.
+  const getSR = useCallback((): SpeechRecognitionCtor | undefined => {
+    if (typeof window === 'undefined') return undefined
+    return (
+      (window as Window & { SpeechRecognition?: SpeechRecognitionCtor }).SpeechRecognition ??
+      (window as Window & { webkitSpeechRecognition?: SpeechRecognitionCtor })
+        .webkitSpeechRecognition
+    )
+  }, [])
 
   const isSpeechSupported = typeof window !== 'undefined' && !!getSR()
 
@@ -78,7 +83,7 @@ export default function SpeechInput({ value, onChange, placeholder, rows = 3, la
     recognition.start()
     recognitionRef.current = recognition
     setIsListening(true)
-  }, [value, onChange])
+  }, [value, onChange, getSR])
 
   const stopListening = useCallback(() => {
     recognitionRef.current?.stop()

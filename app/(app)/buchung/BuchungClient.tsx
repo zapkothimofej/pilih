@@ -1,9 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Booking, BookingType } from '@/app/generated/prisma/client'
 import { CheckIcon, ArrowRightIcon, CalendarIcon } from '@/components/ui/icons'
+
+// The min-valid datetime-local string is "now + 60min" in LOCAL time.
+// Kept outside the component so useSyncExternalStore has stable refs.
+function getClientMinDateStr(): string {
+  const d = new Date(Date.now() + 60 * 60_000)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  )
+}
+// No-op subscriber — we never refresh the min-string while the page is
+// open. If the user sits on the form for an hour the server revalidates
+// the 60-min lead on submit anyway.
+function subscribeMin() {
+  return () => {}
+}
 
 const BOOKING_TYPES: Array<{
   type: BookingType
@@ -54,12 +71,16 @@ export default function BuchungClient({ bookings: initialBookings }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  // datetime-local expects LOCAL time, not UTC — build the string from local fields.
-  const d = new Date(Date.now() + 60 * 60_000)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const minDateStr =
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
-    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  // datetime-local expects LOCAL time, not UTC. useSyncExternalStore
+  // lets us derive the min-string from an impure source (Date.now()
+  // when mounted) without tripping react-hooks/purity during render
+  // OR react-hooks/set-state-in-effect when computed in an effect.
+  // Returns '' on SSR so hydration matches.
+  const minDateStr = useSyncExternalStore(
+    subscribeMin,
+    getClientMinDateStr,
+    () => ''
+  )
 
   async function handleBook() {
     if (!selected || !scheduledAt) return

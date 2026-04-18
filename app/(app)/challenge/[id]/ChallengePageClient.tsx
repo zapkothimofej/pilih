@@ -1,10 +1,13 @@
 'use client'
 
+import { useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { gsap } from 'gsap'
+import { useGSAP } from '@gsap/react'
 import ChallengeWidget from '@/components/challenge/ChallengeWidget'
 import ChatInterface from '@/components/challenge/ChatInterface'
 import { ArrowLeftIcon } from '@/components/ui/icons'
+import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
 import type { Challenge } from '@/app/generated/prisma/client'
 
 interface Props {
@@ -16,22 +19,34 @@ interface Props {
 
 export default function ChallengePageClient({ challenge, sessionId, dayNumber, previousAttempts }: Props) {
   const router = useRouter()
+  const scope = useRef<HTMLDivElement>(null)
+  const reduced = useReducedMotion()
 
   function handleComplete(_rating: string, xp: number) {
     setTimeout(() => router.push(`/dashboard?xp=${xp}`), 500)
   }
 
+  useGSAP(
+    () => {
+      if (reduced || !scope.current) return
+      gsap.from(scope.current.querySelectorAll<HTMLElement>('[data-stagger]'), {
+        opacity: 0,
+        y: 10,
+        duration: 0.4,
+        stagger: 0.06,
+        ease: 'power2.out',
+      })
+    },
+    { dependencies: [reduced], scope }
+  )
+
   return (
-    <div className="space-y-4">
+    <div ref={scope} className="space-y-4">
       {/* Topbar */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
-      >
+      <div data-stagger className="flex items-center justify-between">
         <button
           onClick={() => router.push('/dashboard')}
-          className="flex items-center gap-1.5 text-sm transition-colors"
+          className="flex items-center gap-1.5 text-sm transition-colors tap-small"
           style={{ color: 'var(--text-muted)' }}
         >
           <ArrowLeftIcon size={14} />
@@ -47,20 +62,16 @@ export default function ChallengePageClient({ challenge, sessionId, dayNumber, p
           </div>
           <button
             onClick={() => router.push('/challenge/heute')}
-            className="text-xs transition-colors"
+            className="text-xs transition-colors tap-small"
             style={{ color: 'var(--text-muted)' }}
           >
             Andere Challenge
           </button>
         </div>
-      </motion.div>
+      </div>
 
       {/* Widget */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.04 }}
-      >
+      <div data-stagger>
         <ChallengeWidget
           title={challenge.title}
           description={challenge.description}
@@ -68,13 +79,11 @@ export default function ChallengePageClient({ challenge, sessionId, dayNumber, p
           category={challenge.category}
           difficulty={challenge.currentDifficulty}
         />
-      </motion.div>
+      </div>
 
       {/* Chat */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.08 }}
+      <div
+        data-stagger
         className="rounded-2xl border overflow-hidden"
         style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
       >
@@ -98,7 +107,7 @@ export default function ChallengePageClient({ challenge, sessionId, dayNumber, p
             onComplete={handleComplete}
           />
         </div>
-      </motion.div>
+      </div>
     </div>
   )
 }

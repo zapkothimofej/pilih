@@ -1,6 +1,9 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { useRef } from 'react'
+import { gsap } from 'gsap'
+import { useGSAP } from '@gsap/react'
+import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
 
 type Rating = 'TOO_EASY' | 'JUST_RIGHT' | 'TOO_HARD'
 
@@ -48,27 +51,64 @@ const OPTIONS: {
 ]
 
 export default function DifficultyRating({ onRate, loading }: DifficultyRatingProps) {
+  const scope = useRef<HTMLDivElement>(null)
+  const reduced = useReducedMotion()
+
+  useGSAP(
+    () => {
+      if (reduced) return
+      gsap.from(scope.current, {
+        opacity: 0,
+        y: 8,
+        duration: 0.35,
+        ease: 'power2.out',
+      })
+    },
+    { dependencies: [reduced], scope }
+  )
+
+  // Arrow-key nav across the three radio-like buttons. Left/Right (and
+  // Up/Down) move focus; the rating itself is committed on Enter/Space
+  // which the native <button> already handles.
+  function handleKeyDown(e: React.KeyboardEvent<HTMLButtonElement>, index: number) {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
+    e.preventDefault()
+    const delta = e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 1
+    const next = (index + delta + OPTIONS.length) % OPTIONS.length
+    const target = scope.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]
+    target?.focus()
+  }
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-2.5"
-    >
-      <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+    <div ref={scope} className="space-y-2.5">
+      <p
+        id="difficulty-rating-label"
+        className="text-xs text-center"
+        style={{ color: 'var(--text-muted)' }}
+      >
         Wie schwierig war diese Challenge?
       </p>
-      <div className="grid grid-cols-3 gap-2">
-        {OPTIONS.map((opt) => (
+      <div
+        role="radiogroup"
+        aria-labelledby="difficulty-rating-label"
+        className="grid grid-cols-3 gap-2"
+      >
+        {OPTIONS.map((opt, i) => (
           <button
             key={opt.value}
+            role="radio"
+            aria-checked={false}
             onClick={() => onRate(opt.value)}
+            onKeyDown={(e) => handleKeyDown(e, i)}
             disabled={loading}
             aria-label={`Schwierigkeit: ${opt.label}`}
+            // Only the first option is in the tab sequence (tabIndex=0);
+            // arrow keys move focus within the group, matching the
+            // WAI-ARIA radiogroup pattern.
+            tabIndex={i === 0 ? 0 : -1}
             className="rating-option flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border transition-colors disabled:opacity-40 text-sm"
             data-value={opt.value}
             style={{
-              // Custom props let the pseudo-classes in globals.css pick up
-              // the per-option active palette without repeating handlers.
               ['--rating-active-bg' as string]: opt.activeStyle.background,
               ['--rating-active-border' as string]: opt.activeStyle.borderColor,
               ['--rating-active-color' as string]: opt.activeStyle.color,
@@ -82,7 +122,7 @@ export default function DifficultyRating({ onRate, loading }: DifficultyRatingPr
           </button>
         ))}
       </div>
-    </motion.div>
+    </div>
   )
 }
 
