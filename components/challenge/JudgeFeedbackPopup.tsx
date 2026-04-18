@@ -2,7 +2,10 @@
 
 import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { gsap } from 'gsap'
+import { useGSAP } from '@gsap/react'
 import { BotIcon, CloseIcon, CheckIcon, ArrowRightIcon } from '@/components/ui/icons'
+import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
 
 type JudgeFeedback = {
   score: number
@@ -266,23 +269,60 @@ function ScoreRing({ score }: { score: number }) {
   const c = 2 * Math.PI * r
   const fill = (score / 10) * c
   const color = scoreColor(score)
+  const ringRef = useRef<SVGSVGElement>(null)
+  const numRef = useRef<HTMLSpanElement>(null)
+  const reduced = useReducedMotion()
+
+  useGSAP(
+    () => {
+      const arc = ringRef.current?.querySelector<SVGCircleElement>('.score-arc')
+      const num = numRef.current
+      if (!arc || !num) return
+
+      if (reduced) {
+        arc.setAttribute('stroke-dasharray', `${fill} ${c - fill}`)
+        num.textContent = String(score)
+        return
+      }
+
+      gsap.fromTo(
+        arc,
+        { strokeDasharray: `0 ${c}` },
+        { strokeDasharray: `${fill} ${c - fill}`, duration: 1.1, ease: 'power3.out' }
+      )
+
+      const counter = { n: 0 }
+      gsap.to(counter, {
+        n: score,
+        duration: 0.9,
+        ease: 'power2.out',
+        onUpdate: () => {
+          if (num) num.textContent = String(Math.round(counter.n))
+        },
+      })
+    },
+    { dependencies: [score, fill, c, reduced] }
+  )
 
   return (
     <div className="relative w-16 h-16 shrink-0">
-      <svg width="64" height="64" viewBox="0 0 64 64" className="rotate-[-90deg]">
+      <svg ref={ringRef} width="64" height="64" viewBox="0 0 64 64" className="rotate-[-90deg]">
         <circle cx="32" cy="32" r={r} fill="none" stroke="var(--border-default)" strokeWidth="5" />
         <circle
-          cx="32" cy="32" r={r}
+          className="score-arc"
+          cx="32"
+          cy="32"
+          r={r}
           fill="none"
           stroke={color}
           strokeWidth="5"
-          strokeDasharray={`${fill} ${c - fill}`}
+          strokeDasharray={`0 ${c}`}
           strokeLinecap="round"
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-lg font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-          {score}
+        <span ref={numRef} className="text-lg font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+          0
         </span>
       </div>
     </div>
