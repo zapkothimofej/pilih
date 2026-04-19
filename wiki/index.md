@@ -28,6 +28,7 @@ Claude-maintained knowledge base for PILIH, the 21-day KI-Führerschein. Cross-l
 - [[reduced-motion]] — hook, global CSS, streaming indicator fallback
 - [[gsap-patterns]] — useGSAP scope, cleanup, SSR hydration considerations
 - [[a11y-patterns]] — tap-small, focus management, radiogroup, aria-invalid
+- [[keyboard-a11y]] — Round 6: keyboard-only journey, SR correctness, WCAG 2.2 AA audit
 - [[copy-tonality]] — du-first voice, tagline usage, error-message warmth
 
 ### Infrastructure
@@ -37,6 +38,9 @@ Claude-maintained knowledge base for PILIH, the 21-day KI-Führerschein. Cross-l
 - [[observability]] — cost surface, correlation IDs, audit trail, metric events
 - [[query-performance]] — Round 4: Prisma query plans, N+1 audit, pool sizing
 - [[client-state]] — Round 5: optimistic updates, router.refresh races, RSC→client state flow
+- [[react19-idioms]] — Round 6: server actions, useActionState, useOptimistic, use(), useTransition
+- [[scale-tenancy]] — Round 6: multi-tenant patterns, seat quotas, null-company orphans, cert fan-out
+- [[input-validation]] — Round 6: Unicode, whitespace-only, zero-width, enum parity, numeric bounds
 
 ## How this works
 

@@ -72,3 +72,15 @@ Touched: wiki/ops-runbook.md
 
 ## [2026-04-18 23:59] session | round 5 review: client state + perceived perf
 Touched: wiki/client-state.md, wiki/index.md
+
+## [2026-04-18 23:59] session | round 6 review: scale + multi-tenancy
+Touched: wiki/scale-tenancy.md, wiki/index.md
+
+## [2026-04-18 23:59] session | round 6 review: react 19 idioms
+Touched: wiki/react19-idioms.md, wiki/index.md
+
+## [2026-04-18 23:59] session | round 6 review: input-validation edge cases
+Touched: wiki/input-validation.md, wiki/index.md
+
+## [2026-04-18 23:59] session | round 6 review: keyboard + SR a11y
+Touched: wiki/keyboard-a11y.md, wiki/a11y-patterns.md, wiki/index.md

@@ -40,6 +40,26 @@ export async function POST(req: Request) {
   }
 
   const { type, scheduledAt } = parsed.data
+
+  // Tier gate — previously absent. BASE users could POST here and
+  // book 1:1 coaching worth 500 € of tier delta even though the
+  // settings copy sells it as a PREMIUM-only perk. PRO gets the
+  // group meeting; PREMIUM gets 1:1 + group.
+  const allowed = {
+    GROUP_MEETING: ['PRO', 'PREMIUM'] as const,
+    ONE_ON_ONE: ['PREMIUM'] as const,
+  }
+  if (!(allowed[type] as readonly string[]).includes(user.tier)) {
+    return NextResponse.json(
+      {
+        error:
+          type === 'ONE_ON_ONE'
+            ? 'Persönliches 1:1-Coaching ist Teil des Premium-Plans.'
+            : 'Gruppen-Meetings sind Teil der Pro- und Premium-Pläne.',
+      },
+      { status: 403 }
+    )
+  }
   const scheduled = new Date(scheduledAt)
 
   // Enforce a 60-minute lower and a 90-day upper bound. Without the

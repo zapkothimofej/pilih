@@ -5,14 +5,20 @@ import { getCurrentDbUser } from '@/lib/utils/auth'
 import { assertSameOrigin } from '@/lib/utils/csrf'
 import { z } from 'zod'
 
+// Trim-refined minimums so whitespace-only values can't slip past
+// the gate — a user typing "        " into dailyDescription used
+// to pass `.min(10)` and drag that into the generator prompt,
+// burning tokens on nothing.
+const nonEmpty = (n: number) => (s: string) => s.trim().length >= n
+
 const schema = z.object({
-  companyName: z.string().min(1).max(200),
-  department: z.string().min(1).max(200),
-  jobTitle: z.string().min(1).max(200),
-  dailyDescription: z.string().min(10).max(2000),
+  companyName: z.string().min(1).max(200).refine(nonEmpty(1)),
+  department: z.string().min(1).max(200).refine(nonEmpty(1)),
+  jobTitle: z.string().min(1).max(200).refine(nonEmpty(1)),
+  dailyDescription: z.string().min(10).max(2000).refine(nonEmpty(10)),
   aiSkillLevel: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']),
   aiToolsUsed: z.array(z.string().min(1).max(50)).max(20),
-  aiFrequency: z.string().min(1).max(200),
+  aiFrequency: z.string().min(1).max(200).refine(nonEmpty(1)),
 })
 
 export async function POST(req: Request) {

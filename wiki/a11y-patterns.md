@@ -36,6 +36,7 @@ A dedicated visually-hidden `role="status"` region announces "Antwort wird gener
 
 ## Related
 
+- [[keyboard-a11y]] — keyboard-only journey + SR correctness (Round 6)
 - [[reduced-motion]] — motion contract
 - [[gsap-patterns]] — focus after animation
 - [[copy-tonality]] — error messages

@@ -19,7 +19,16 @@ const schema = z
     // Optional in dev/testing-mode but required once Clerk is live. The
     // cross-field check below enforces presence in production.
     CLERK_WEBHOOK_SECRET: z.string().optional(),
-    NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+    // z.string().url() permits javascript: and data: schemes. We
+    // concatenate this into a LinkedIn share URL; allowing anything
+    // other than http(s) would be a stored-XSS vector once opened.
+    NEXT_PUBLIC_APP_URL: z
+      .string()
+      .url()
+      .refine((u) => /^https?:\/\//.test(u), {
+        message: 'NEXT_PUBLIC_APP_URL must use http(s)',
+      })
+      .optional(),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     // Only bypass the middleware fail-closed guard from preview deploys.
     ALLOW_TESTING_AUTH: z.string().optional(),

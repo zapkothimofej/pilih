@@ -23,11 +23,23 @@ const client = new Anthropic({ apiKey: env().ANTHROPIC_API_KEY })
 const SUBMISSION_LIMIT = 5
 const SUBMISSION_WINDOW_MS = 60 * 60 * 1000
 
+// Whitespace-padded minimums fail open without the trim refine —
+// e.g. 30 spaces would pass `.min(30)` and send useless content to
+// Sonnet at ~$0.06 per submission. `.refine` does the post-trim
+// length check without changing the wire shape.
 const useCaseSchema = z.object({
-  title: z.string().min(3).max(200),
-  description: z.string().min(20).max(2000),
-  prompt: z.string().min(30).max(4000),
-  result: z.string().min(20).max(4000),
+  title: z.string().min(3).max(200).refine((s) => s.trim().length >= 3, {
+    message: 'title darf nicht nur aus Leerzeichen bestehen',
+  }),
+  description: z.string().min(20).max(2000).refine((s) => s.trim().length >= 20, {
+    message: 'description muss mindestens 20 Nicht-Leerzeichen enthalten',
+  }),
+  prompt: z.string().min(30).max(4000).refine((s) => s.trim().length >= 30, {
+    message: 'prompt muss mindestens 30 Nicht-Leerzeichen enthalten',
+  }),
+  result: z.string().min(20).max(4000).refine((s) => s.trim().length >= 20, {
+    message: 'result muss mindestens 20 Nicht-Leerzeichen enthalten',
+  }),
 })
 
 const bodySchema = z.object({

@@ -6,6 +6,11 @@ import BuchungClient from './BuchungClient'
 export default async function BuchungPage() {
   const user = await getCurrentDbUser()
   if (!user) redirect('/sign-in')
+  // Server-side tier gate — BASE users used to land on this page
+  // with a working booking form even though the settings copy sells
+  // it as a Pro/Premium perk. Redirect them to einstellungen where
+  // the upgrade CTA lives.
+  if (user.tier === 'BASE') redirect('/einstellungen')
 
   const bookings = await prisma.booking.findMany({
     where: { userId: user.id },

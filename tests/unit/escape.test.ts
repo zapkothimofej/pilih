@@ -17,6 +17,15 @@ describe('escapeXmlText', () => {
     expect(escapeXmlText('a\x7fb')).toBe('ab')
   })
 
+  it('strips zero-width and bidi format chars (steganographic injection)', () => {
+    expect(escapeXmlText('a\u200Bb')).toBe('ab') // zero-width space
+    expect(escapeXmlText('a\u200Cb')).toBe('ab') // ZWNJ
+    expect(escapeXmlText('a\u200Db')).toBe('ab') // ZWJ
+    expect(escapeXmlText('a\u202Eb')).toBe('ab') // RLO (bidi override)
+    expect(escapeXmlText('a\uFEFFb')).toBe('ab') // BOM
+    expect(escapeXmlText('a\u2066b')).toBe('ab') // isolate
+  })
+
   it('preserves tab, newline, carriage-return', () => {
     expect(escapeXmlText('a\tb\nc\rd')).toBe('a\tb\nc\rd')
   })
