@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 import { assertSameOrigin } from '@/lib/utils/csrf'
+import { env } from '@/lib/env'
 
 export async function POST(req: Request) {
   const csrf = assertSameOrigin(req)
@@ -18,8 +19,10 @@ export async function POST(req: Request) {
 
   // The share URL points at the in-app zertifikat page, which runs auth and
   // redirects when a visitor isn't the recipient. Avoids fictitious domains
-  // or unauthenticated deep-links to personal data.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  // or unauthenticated deep-links to personal data. env() enforces the
+  // prod presence of NEXT_PUBLIC_APP_URL so the localhost fallback can
+  // only leak out of dev.
+  const appUrl = env().NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   const certText = encodeURIComponent(
     `Ich habe meinen KI-Führerschein abgeschlossen! 🔥🏆 21 Tage Prompt Engineering Training mit PILIH — "Prompt it like it's hot". #KI #PromptEngineering #PILIH #AILiteracy`
   )

@@ -160,7 +160,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
                 attemptNumber: number
               }
             | { type: 'done' }
-            | { type: 'error'; message: string }
+            | { type: 'error'; message: string; dropAssistant?: boolean }
           try {
             data = JSON.parse(line.slice(6))
           } catch {
@@ -194,7 +194,12 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
           } else if (data.type === 'error') {
             if (timeoutRef.current) clearTimeout(timeoutRef.current)
             toast.error(data.message ?? 'Fehler beim Laden der Antwort.')
-            if (!assistantContent) {
+            // dropAssistant is set when the LLM streamed content but
+            // the judge/persist failed, leaving an un-persisted bubble
+            // the user "saw" but DB never stored. Force-drop so the
+            // next attempt's history rebuild matches what the user
+            // sees on screen.
+            if (!assistantContent || data.dropAssistant) {
               setMessages((prev) => prev.slice(0, -1))
             }
             setIsStreaming(false)

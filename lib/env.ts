@@ -38,6 +38,17 @@ const schema = z
           'CLERK_WEBHOOK_SECRET is required in production (unless ALLOW_TESTING_AUTH=true for a preview deploy).',
       })
     }
+    // NEXT_PUBLIC_APP_URL is embedded in the LinkedIn share URL on
+    // every certificate — without it the localhost fallback ships
+    // to real LinkedIn posts.
+    if (data.NODE_ENV === 'production' && !data.NEXT_PUBLIC_APP_URL) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['NEXT_PUBLIC_APP_URL'],
+        message:
+          'NEXT_PUBLIC_APP_URL is required in production — it ends up in LinkedIn share links.',
+      })
+    }
   })
 
 type Env = z.infer<typeof schema>

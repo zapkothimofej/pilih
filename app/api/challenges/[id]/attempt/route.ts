@@ -178,10 +178,19 @@ export async function POST(
         // Count is advisory and not row-locked; concurrent requests can land on
         // the same `attemptNumber`. The DB-level `@@unique([sessionId,
         // attemptNumber])` is the real guard — retry on P2002.
+        // Using _max instead of count avoids the infinite-P2002 failure
+        // mode when an admin hard-deletes an attempt row: count shrinks
+        // but the remaining rows' attemptNumbers stay, so count+1
+        // collides with an existing number forever. _max+1 always
+        // finds a free slot.
         let attempt: Awaited<ReturnType<typeof prisma.promptAttempt.create>> | null = null
         let lastConflict: unknown = null
         for (let i = 0; i < 3 && !attempt; i++) {
-          const count = await prisma.promptAttempt.count({ where: { sessionId } })
+          const maxAttempt = await prisma.promptAttempt.aggregate({
+            where: { sessionId },
+            _max: { attemptNumber: true },
+          })
+          const nextAttemptNumber = (maxAttempt._max.attemptNumber ?? 0) + 1
           try {
             attempt = await prisma.promptAttempt.create({
               data: {
@@ -192,7 +201,7 @@ export async function POST(
                 judgeFeedback: judgeFeedback.feedback,
                 judgeScore: judgeFeedback.score,
                 improvements: judgeFeedback.improvements,
-                attemptNumber: count + 1,
+                attemptNumber: nextAttemptNumber,
               },
             })
           } catch (err) {
@@ -248,10 +257,16 @@ export async function POST(
           return
         }
         logError('attempt', 'stream error', err)
+        // dropAssistant tells the client to strip the assistant bubble
+        // it optimistically appended before the stream completed — so
+        // a Haiku-succeeds-then-judge-fails case doesn't leave an
+        // un-persisted answer in the UI the user "sees" but the DB
+        // never saw.
         safeEnqueue(
           `data: ${JSON.stringify({
             type: 'error',
             message: 'Verarbeitung fehlgeschlagen. Bitte erneut versuchen.',
+            dropAssistant: true,
           })}\n\n`
         )
         closed = true
