@@ -102,9 +102,14 @@ export default function AdminClient({
       </div>
 
       {/* Search */}
+      <label className="sr-only" htmlFor="admin-search">
+        Teilnehmer suchen
+      </label>
       <input
-        type="text"
+        id="admin-search"
+        type="search"
         placeholder="Name, E-Mail oder Firma suchen…"
+        aria-label="Teilnehmer nach Name, E-Mail oder Firma suchen"
         value={search}
         onChange={e => setSearch(e.target.value)}
         className="input-accent w-full rounded-xl px-4 py-2.5 text-sm"

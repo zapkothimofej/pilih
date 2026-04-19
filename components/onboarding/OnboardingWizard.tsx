@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useId, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { gsap } from 'gsap'
 import { useGSAP } from '@gsap/react'
@@ -292,14 +292,18 @@ function FormInput({ label, placeholder, value, onChange, required = true }: {
 }) {
   // The button-disabled gate didn't tell screen-reader users WHICH
   // field was empty — aria-invalid + aria-required close that loop.
+  // htmlFor/id binds the label so SRs read the label when the input
+  // takes focus (proximity was not enough — WCAG 3.3.2).
+  const id = useId()
   const isInvalid = required && value.trim().length === 0
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+      <label htmlFor={id} className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
         {label}
         {required && <span aria-hidden="true" style={{ color: 'var(--error)' }}> *</span>}
       </label>
       <input
+        id={id}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}

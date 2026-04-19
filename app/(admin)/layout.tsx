@@ -13,7 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         Zum Hauptinhalt springen
       </a>
       <AppNav user={user} />
-      <main id="main-content" className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
+      <main id="main-content" tabIndex={-1} className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 focus:outline-none">
         {children}
       </main>
     </div>

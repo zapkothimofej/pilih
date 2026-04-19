@@ -35,7 +35,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="de" className={`${geist.variable} h-full`}>
       <body className="min-h-full antialiased" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
         {children}
-        <Toaster richColors position="top-right" />
+        {/* closeButton: keyboard users can dismiss without waiting
+            for auto-dismiss (WCAG 3.3.4 consistent-assistance). */}
+        <Toaster richColors position="top-right" closeButton />
       </body>
     </html>
   )

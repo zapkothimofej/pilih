@@ -163,7 +163,13 @@ body {
   background: var(--rating-active-bg) !important;
   border-color: var(--rating-active-border) !important;
   color: var(--rating-active-color) !important;
-  outline: none;
+}
+/* Keep a real outline on keyboard focus so arrow-key nav across the
+   radiogroup is distinguishable from the active/hover state — they
+   otherwise paint the same palette. */
+.rating-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /*
