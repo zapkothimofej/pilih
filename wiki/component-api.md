@@ -77,106 +77,62 @@ render props. Rounds 3 + 6 killed those.
 
 ## Dimension 4 — `children` typing (score 9/10)
 
-Grep for `children: React.ReactNode` + `children: ReactNode` returns
-6 hits: three layouts, two `OnboardingWizard` sub-buttons, one
-recursive helper in `ChatInterface`. All three layouts genuinely
-accept any renderable. Both sub-buttons (`PrimaryButton`,
-`SecondaryButton` at `:322, :338`) accept string+icon fragments —
-`ReactNode` is correct. `extractCodeText(children: ReactNode)` walks
-the tree recursively — needs `ReactNode`.
-
-- **F4.1** (info): No false-positive `ReactNode` where a `string`
-  would do. Clean.
+6 `ReactNode` sites: three layouts, two `OnboardingWizard`
+sub-buttons (accept icon+string fragments), one recursive
+`extractCodeText` walker. All justified. No false-positive where
+`string` would suffice. Clean.
 
 ## Dimension 5 — Unused props (score 9/10)
 
-Read all 17 component prop interfaces; cross-referenced each prop
-against its file's render tree.
-
-- **F5.1** (low): `ChallengePageClient.dayNumber`
-  (`ChallengePageClient.tsx:16`) is used at `:71` for the "Tag X von
-  21" badge — reachable. Fine.
+- **F5.1** (info): `ChallengePageClient.dayNumber` — reachable at
+  `:71`. Fine.
 - **F5.2** (medium): `ChatInterface.onComplete(rating, xp)`
-  (`ChatInterface.tsx:25`) is called at `:248` with the user's
-  rating. The **consumer**
-  (`ChallengePageClient.handleComplete`) immediately discards
-  `_rating` with `void _rating` at
-  `ChallengePageClient.tsx:25-32`. The rating travels across a
-  component boundary, through a prop type, just to get thrown away.
-  Either drop `rating` from the callback signature (the server
-  already persisted it — see D10) or route it through a use-case
-  (e.g. "Thanks, that was _too easy_ — we'll adjust"). Today it's
-  dead weight in the contract. **Severity: medium** (false
-  coupling).
-- **F5.3** (info): `CopyButton` (`ChatInterface.tsx:649`) had a
-  `variant` prop that was removed in round 5 — comment at `:655`
-  notes the cleanup. Good hygiene.
-- **F5.4** (low): `ChallengeCard.index`
-  (`ChallengeCard.tsx:21`) is consumed only for the stagger delay at
-  `:51`. Fine — but see D8 on render-prop alternatives.
+  (`:25`) is called at `:248` with the rating. The consumer
+  (`ChallengePageClient.handleComplete`) discards it via `void
+  _rating` at `:25-32`. Rating crosses a component boundary just to
+  be thrown away. Drop from signature (server already persists) OR
+  route it to a user-visible acknowledgement. **False coupling.**
+- **F5.3** (info): `CopyButton.variant` was removed round 5;
+  comment at `:655` documents it. Good hygiene.
+- **F5.4** (info): `ChallengeCard.index` — used for stagger delay
+  at `:51`. Fine.
 
 ## Dimension 6 — Style-prop CSS-custom-prop contracts (score 6/10)
 
-One component sets CSS variables on an element and relies on a CSS
-class to read them:
-
-- **F6.1** (medium): `DifficultyRating`
-  (`components/challenge/DifficultyRating.tsx:111-118`) writes
-  `--rating-active-bg / -border / -color` into inline style, then
-  `app/globals.css:163-165` reads them behind a `.rating-option`
-  class hover/focus selector. The contract is split across two files
-  with **zero** type safety. If someone renames the CSS variable or
-  drops the class, the hover state silently breaks. Two fixes:
-  1. Move the three vars into a typed constant at the top of
-     `DifficultyRating.tsx` and document them with a
-     JSDoc `@cssvar` block.
-  2. Or bypass CSS: pass activeStyle directly via `data-active`
-     selector + inline `style` — no globals.css coupling.
-  **Severity: medium** (silent-regression surface).
+- **F6.1** (medium): `DifficultyRating` (`:111-118`) writes
+  `--rating-active-bg / -border / -color` inline; `globals.css:
+  163-165` reads them via `.rating-option` selector. Contract
+  spans two files with zero type safety. Rename either side →
+  silent hover regression. Either lift to a typed constant with
+  a `@cssvar` JSDoc block, or drop the CSS coupling and style via
+  `data-active` + inline rules.
 - **F6.2** (info): All other `style={{ '--foo' ... }}` usage is
-  local (scoped to the same component's own className). Not a
-  contract leak.
-- **F6.3** (low): `ChallengeCard:88` uses `transformStyle:
-  'preserve-3d'` + `willChange: 'transform'` inline. These are
-  performance-related style props the GSAP tween code depends on —
-  would be cleaner as a `.card-3d` utility class in globals.css for
-  discoverability. **Severity: low**.
+  scoped to the component's own className. Not a leak.
+- **F6.3** (low): `ChallengeCard:88` inlines `transformStyle:
+  'preserve-3d'` + `willChange: 'transform'` that GSAP depends on.
+  Would be cleaner as a `.card-3d` utility.
 
 ## Dimension 7 — Event-handler naming (score 7/10)
 
-Inventory of callback prop names: `onSelect` (ChallengeCard),
-`onRate` (DifficultyRating), `onComplete` (ChatInterface), `onClose`
-(JudgeFeedbackPopup), `onEdit` (AbschlussClient→FeedbackView),
-`onChange` (SpeechInput, FormInput), `onClick` (Primary/
-SecondaryButton).
+Inventory: `onSelect, onRate, onComplete, onClose, onEdit, onChange,
+onClick`.
 
-- **F7.1** (info): All follow the "on + imperative verb" convention
-  except `onComplete` which is past-tense. React idiom is
-  future-imperative (`onSubmit`, `onRate`) OR past-imperative
-  (`onCompleted`). `onComplete` is borderline. Low-priority rename
-  candidate: `onRated(rating, xp)` (the callback fires when the
-  rating is submitted, not when the challenge itself "completes"
-  — the challenge completed earlier, at the last prompt attempt).
-  **Severity: low** (semantic drift).
-- **F7.2** (low): `onSelect(id: string)` in `ChallengeCard` and
-  `onRate(rating: Rating)` in `DifficultyRating` — both are
-  "select from a fixed set of options". Unifying to `onSelect` with
-  a generic would reduce surface, but the value vocabularies differ
-  (challenge id vs enum). Keep as-is.
-- **F7.3** (info): No `onChange` is doing double-duty as
-  "submit" anywhere — usually the anti-pattern.
+- **F7.1** (low): `onComplete` is past-tense; React idiom is
+  future-imperative (`onSubmit`) or past-imperative (`onCompleted`).
+  Rename candidate: `onRated(rating, xp)` — fires when the rating
+  is submitted; the challenge itself "completed" earlier at the
+  final prompt.
+- **F7.2** (info): `onSelect(id)` vs `onRate(rating)` — both are
+  "pick from options" but value vocabularies differ. Keep split.
+- **F7.3** (info): No `onChange` doubling as submit.
 
 ## Dimension 8 — Render-prop / children-as-function (score 10/10)
 
-Grep for `children={(` and `render={(` — zero hits. No render props,
-no children-as-function patterns. **Verified clean.**
+Grep `children={(` + `render={(` → zero. Clean.
 
 ## Dimension 9 — Ref forwarding vs React 19 ref-prop (score 10/10)
 
-Grep for `forwardRef` — zero hits. Round 3 already killed Radix
-remnants; no regressions. Components that expose refs do so via the
-React 19 ref-prop directly (e.g. `FortschrittCalendar` uses
-`useRef(null)` locally, not forwarded). **Verified clean.**
+Grep `forwardRef` → zero. Round 3 kill was thorough. Clean.
 
 ## Dimension 10 — Server-component prop shape (Prisma leakage) (score 4/10)
 
@@ -193,16 +149,11 @@ Seven client components import Prisma types as props:
 | `AdminClient` | (declared inline Participant) | *ok* |
 
 - **F10.1** (high): `ChallengePageClient({ challenge: Challenge })`
-  (`ChallengePageClient.tsx:14`) passes the **entire** Prisma row —
-  including `isActive`, `createdAt`, `dayNumber` (the column, not
-  the prop), internal adaptive-difficulty counters, ownership
-  `userId`. The client only reads `id, title, description,
-  promptingTips, category, currentDifficulty` (via the spread at
-  `:86-91`). If Prisma makes `promptingTips` nullable tomorrow
-  (`String?`), the client breaks silently — no compile error because
-  `Challenge.promptingTips` becomes `string | null` and
-  `ChallengeWidget.promptingTips: string` loses its runtime guarantee.
-  Same risk if a field is renamed. Define a DTO:
+  passes the entire Prisma row (incl. `isActive`, `createdAt`,
+  `userId`, adaptive counters). Client reads only 6 fields at
+  `:86-91`. If Prisma makes `promptingTips` nullable, the client
+  breaks silently (type becomes `string | null` while
+  `ChallengeWidget.promptingTips: string` stays). Define a DTO:
   ```ts
   // lib/dto/challenge.ts
   export type ChallengeView = Pick<
@@ -210,96 +161,61 @@ Seven client components import Prisma types as props:
              | 'category' | 'currentDifficulty'
   >
   ```
-  Server page maps Prisma→DTO. **Severity: high** (silent drift
-  surface + over-fetching IDs/PII through the RSC payload — see
-  [[client-state]] on serialization cost).
-- **F10.2** (high): `BuchungClient({ bookings: Booking[] })`
-  (`BuchungClient.tsx:62`) — same pattern. Client only reads `id,
-  type, scheduledAt, status, meetingUrl`. Prisma `Booking` also has
-  `notes`, `createdBy`, `companyId` (likely, once multi-tenant
-  lands per [[scale-tenancy]]). **Severity: high** (tenancy leak
-  risk; booking.companyId wire-transferred to the client).
-- **F10.3** (medium): `EinstellungenClient` takes
-  `{ user: User; bookings: Booking[] }`. `User` includes
-  `clerkUserId`, `email`, `createdAt` — the `email` is rendered
-  (`:66`) but the Clerk id isn't. DTO helps and also defends
-  [[security]]'s PII-scrub policy. **Severity: medium**.
+  Over-fetches IDs/PII through the RSC payload too.
+- **F10.2** (high): `BuchungClient({ bookings: Booking[] })` —
+  same pattern. Client reads `id, type, scheduledAt, status,
+  meetingUrl`. `Booking` will carry `companyId` once multi-tenant
+  lands ([[scale-tenancy]]) — tenancy leak risk.
+- **F10.3** (medium): `EinstellungenClient({ user: User, bookings:
+  Booking[] })`. `User` includes `clerkUserId, email, createdAt`.
+  DTO defends [[security]] PII-scrub policy.
 - **F10.4** (medium): `SubmissionsClient.Submission` widens
-  `FinalSubmission` with `user: {...}` at `:9-11` — good intent, but
-  `FinalSubmission` itself ships `useCase1/2/3` as `Prisma.Json`. The
-  client runtime-parses at `:51-61` with a hand-rolled guard. A DTO
-  with `useCase: UseCase` typed (vs `Prisma.Json`) on the server
-  side eliminates the parse-cost. **Severity: medium**.
-- **F10.5** (low): `AppNav({ user: { name, role: Role } })` narrows
-  to two fields already. Good. Only the `Role` enum leaks, which is
-  fine (enums are stable contract surfaces — if `Role` changes, the
-  server-side auth helper breaks too, so surfaces move together).
+  `FinalSubmission` — `useCase1/2/3` ship as `Prisma.Json`, requiring
+  the hand-rolled parse at `:51-61`. Server-side DTO with typed
+  `UseCase` eliminates parse cost.
+- **F10.5** (info): `AppNav` narrows to `{ name, role: Role }`.
+  `Role` enum drift is fine (stable contract — server auth helper
+  breaks alongside).
 
 ## Dimension 11 — Discriminated unions (score 5/10)
 
-Codebase has three places where a DU would replace nullable/optional
-chains:
-
-- **F11.1** (high): SSE event parsing in `ChatInterface:149-163`
-  already **uses** a DU literal inline for the event payload — but
-  the union lives inside the function body, not exported. Hoisting
-  to `lib/ai/judge-types.ts` lets the server's SSE producer use the
-  same type, and catches "I renamed `shouldShowPopup` server-side"
-  at compile time. See [[stream-lifecycle]] for the stream shape.
-  **Severity: medium** (drift risk between producer and consumer).
+- **F11.1** (medium): SSE event DU at `ChatInterface:149-163` is
+  declared inline, not exported. Hoist to
+  `lib/ai/judge-types.ts` so the server SSE producer shares the
+  type — catches "I renamed `shouldShowPopup`" at compile time.
+  See [[stream-lifecycle]].
 - **F11.2** (medium): `AbschlussClient.view: 'form' | 'feedback'`
-  (`AbschlussClient.tsx:46`) + `feedback: FeedbackState | null` —
-  the two are coupled (`feedback: null` iff `view === 'form'`). The
-  render-guard at `:146` has to re-check both. A DU:
+  + `feedback: FeedbackState | null` are coupled (`feedback: null`
+  iff `view === 'form'`). DU eliminates the impossible state:
   ```ts
   type AbschlussState =
     | { view: 'form'; feedback: null }
     | { view: 'feedback'; feedback: FeedbackState }
   ```
-  makes the impossible state (`view: 'feedback', feedback: null`)
-  unrepresentable. **Severity: medium** — [[react19-idioms]] F3.1
-  calls for `useActionState` here; migrate both at once.
-- **F11.3** (medium): `ChatInterface` state bag
-  (`isStreaming, judgeFeedback, latestJudge, showRating,
-  ratingLoading, attempts`) encodes a four-state FSM: `idle →
-  streaming → awaiting-judge → awaiting-rating → completed`. A
-  `useReducer` with a DU `ChatState` would eliminate
-  contradictory combinations (`isStreaming && showRating`). Big
-  refactor — queue for a round 8 if the chat grows a pause-mid-
-  stream or retry affordance. **Severity: low** today.
+  Migrate alongside [[react19-idioms]] F3.1 `useActionState`.
+- **F11.3** (low): `ChatInterface` state bag encodes a 4-state
+  FSM (`idle → streaming → awaiting-judge → awaiting-rating →
+  completed`). A `useReducer` DU removes `isStreaming &&
+  showRating` contradictions. Defer until the chat grows
+  pause/retry affordances.
 
 ## Dimension 12 — forwardRef stragglers (score 10/10)
 
-Grep: zero. Covered under D9. **Verified clean.**
+Covered under D9. Zero hits. Clean.
 
 ## Dimension 13 — `key` prop stability (score 6/10)
 
-Mapped-element keys:
+Stable id keys used correctly across 6 list sites. `key={i}` found
+at five spots — four on fixed tuples (safe), one latent bug:
 
-- **Stable id keys** (good): `ChallengeTodayClient:140 (c.id)`,
-  `BuchungClient:218 (booking.id)`, `SubmissionsClient:110 (s.id)`,
-  `AdminClient:143 (p.id)`, `EinstellungenClient:172 (b.id)`,
-  `AppNav:103 (item.href)`.
-- **Stable string keys** (fine for static lists):
-  `OnboardingWizard:203 (tool)`, `:225 (freq)`,
-  `LandingSteps:106 (item.step)`, `:127 (item.title)`,
-  `CertificateCard:95 (l)`.
-- **F13.1** (low): `SubmissionsClient:135 (key={i})` — nested map
-  inside a **stable-id** outer loop (`s.id`). Per-submission cases
-  are a fixed-length 3-tuple, so `key={i}` is safe. OK.
-- **F13.2** (low): `AbschlussClient:179 (key={i})` — cases are
-  also a fixed 3-tuple. OK.
 - **F13.3** (medium): `ChatInterface:315 (key={i})` on the
-  **messages** array — this array GROWS as the user sends prompts.
-  If the backend ever inserts a historical message (retry-reload
-  after network drop, say) React's reconciliation will mis-identify
-  bubbles. Today only appends happen, so `key={i}` is functionally
-  safe, but **the GSAP entrance animation checks
-  `dataset.animated === 'true'` on the DOM node** (`:65-67`) to
-  avoid re-animating. If React reuses a node for a different
-  message (which `key={i}` explicitly allows), the dedupe flag
-  travels with the wrong content. Replace with a stable ULID per
-  message:
+  **messages** array — grows as the user sends prompts. Today only
+  appends, so functionally safe. BUT the GSAP entrance tween at
+  `:65-67` tags `dataset.animated = 'true'` on the DOM node to
+  skip re-animating; `key={i}` explicitly licenses React to reuse
+  a node for a different message, so the dedupe flag would travel
+  with the wrong content if a history re-shuffle ever lands.
+  Replace with a stable UUID per message:
   ```tsx
   const [messages, setMessages] = useState<(Message & {id: string})[]>(
     () => previousAttempts.flatMap(a => [
@@ -307,59 +223,44 @@ Mapped-element keys:
       { id: crypto.randomUUID(), role: 'assistant', content: a.llmResponse },
     ])
   )
-  // key={msg.id}
   ```
-  **Severity: medium** (latent animation bug).
-- **F13.4** (low): `JudgeFeedbackPopup` `key={i}` inside already-
-  stable popup-scope (`:224, :243`) — the dialog re-mounts per
-  feedback, so `i`-keys are safe. OK.
-- **F13.5** (info): `ChallengeCard`'s `StarFilledIcon key={i}` —
-  fixed length 5, static. OK.
+- **F13.1–2, F13.4–5** (info): `SubmissionsClient:135`,
+  `AbschlussClient:179`, `JudgeFeedbackPopup:224/243`,
+  `ChallengeCard` stars — all fixed-length tuples or popup-scoped
+  remounts. Safe.
 
 ## Dimension 14 — `useImperativeHandle` / over-engineering (score 10/10)
 
-Grep: zero. No imperative handles exposed. The two places a
-component parent reaches into a child — `ChatInterface`'s focus on
-textarea after `showRating` closes, `OnboardingWizard` heading
-focus — both use **own-component** refs, not forwarded. Correct.
+Grep: zero. The two parent-reaches-into-child spots (`ChatInterface`
+textarea focus, `OnboardingWizard` heading focus) use local refs
+only, not forwarded. Correct.
 
 ## Summary — priority order
 
-**High (do this round):**
+**High:**
 
-1. **F10.1 + F10.2 + F10.3** — Introduce `lib/dto/` for the four
-   leaky Prisma passes. Closes a silent-drift surface and a mild
-   tenancy-info leak ([[scale-tenancy]]). Pairs naturally with
-   [[react19-idioms]] F1.1 (server actions) since DTO mapping moves
-   server-side anyway.
-2. **F13.3** — Stable `id` on `ChatInterface` message bubbles.
-   Fixes the latent animation-dedupe bug.
-3. **F2.1** — Flip `AnimatedNumber.onScroll` default to `false`;
-   the `true` default is unused.
+1. **F10.1–10.4** — Introduce `lib/dto/` for the four leaky Prisma
+   passes. Silent-drift + tenancy-leak surface. Pairs with
+   [[react19-idioms]] F1.1 — DTO mapping moves server-side anyway.
+2. **F13.3** — Stable UUID keys on `ChatInterface` message
+   bubbles. Fixes the latent animation-dedupe bug.
+3. **F2.1** — Flip `AnimatedNumber.onScroll` default to `false`.
 
-**Medium (queue for round 8):**
+**Medium:**
 
-4. **F5.2** — Drop `rating` from `onComplete` or consume it in
-   `ChallengePageClient`.
-5. **F6.1** — Lift `DifficultyRating` CSS-var contract into a
-   typed constant (or drop the globals.css coupling).
-6. **F11.1** — Hoist the SSE event DU to `lib/ai/judge-types.ts`
-   so producer and consumer share the type.
-7. **F11.2** — Migrate `AbschlussClient.view + feedback` to a DU
-   at the same time as the `useActionState` rewrite
-   ([[react19-idioms]] F3.1).
+4. **F5.2** — Drop `rating` from `onComplete` or consume it.
+5. **F6.1** — Lift `DifficultyRating` CSS-var contract out of
+   globals.css coupling.
+6. **F11.1** — Hoist SSE event DU to `lib/ai/judge-types.ts`.
+7. **F11.2** — `AbschlussClient` DU alongside `useActionState`.
 8. **F1.1** — `ChallengeTodayClient` `PoolState` DU.
 9. **F3.3** — `SpeechInput.label` required (or aria-label
    fallback).
 
-**Low (drive-by):**
+**Low:**
 
-10. **F2.2 + F2.3** — Align `AnimatedNumber.duration` +
-    `SpeechInput.rows` defaults to actual usage.
-11. **F3.2** — Drop `poolSize?` optionality.
-12. **F7.1** — Consider renaming `onComplete` → `onRated`.
-13. **F13.1, F13.2** — Keep `key={i}` on fixed-length tuples;
-    document inline if it helps future readers.
+10. **F2.2, F2.3, F3.2** — Default/optionality alignment.
+11. **F7.1** — Rename `onComplete` → `onRated`.
 
 ## Per-dim scores
 
@@ -380,12 +281,11 @@ focus — both use **own-component** refs, not forwarded. Correct.
 | 13 | `key` stability | 6 |
 | 14 | `useImperativeHandle` | 10 |
 
-**Overall: 7.6/10.** The API surface is clean on the structural axes
-(no render props, no forwardRef, no imperative handles, no boolean
-traps) but leaks ORM shapes into client components (D10) — the
-biggest latent-drift surface — and has two unused or mis-polarized
-defaults (D2). The `ChatInterface` `key={i}` (D13) is the only
-findable live bug.
+**Overall: 7.6/10.** Structurally clean (no render props, no
+forwardRef, no imperative handles, no boolean traps) but D10 ORM
+leakage is the biggest latent-drift surface and D2 has two
+mis-polarized defaults. `ChatInterface key={i}` (D13.3) is the
+only findable live-adjacent bug.
 
 ## Cross-references
 

@@ -60,7 +60,14 @@ export async function POST(req: Request) {
       { status: 403 }
     )
   }
-  const scheduled = new Date(scheduledAt)
+  // Truncate to whole minutes. The datetime-local picker emits
+  // minute-granularity but a hand-crafted request with sub-second
+  // precision would defeat @@unique([userId, scheduledAt, type]):
+  // two honest double-clicks 80 ms apart land on different
+  // scheduledAt values, no collision, two UPCOMING bookings created.
+  const scheduled = new Date(
+    Math.floor(new Date(scheduledAt).getTime() / 60_000) * 60_000
+  )
 
   // Enforce a 60-minute lower and a 90-day upper bound. Without the
   // upper bound a malicious client could create bookings in 2099 that
