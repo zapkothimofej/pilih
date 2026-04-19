@@ -43,10 +43,31 @@ export async function GET(req: NextRequest) {
       : {}),
   }
 
+  // Mirror of the server page's projection (admin/submissions/page.tsx).
+  // llmReview is intentionally omitted: it stores adminOverride.note +
+  // reviewerId of previous reviewers and would leak across admins via
+  // this JSON mirror. companyId on the joined user is also dropped for
+  // COMPANY_ADMIN responses since they already know it's theirs.
   const [rows, totalCount] = await prisma.$transaction([
     prisma.finalSubmission.findMany({
       where,
-      include: { user: { select: { id: true, name: true, email: true, companyId: true } } },
+      select: {
+        id: true,
+        status: true,
+        useCase1: true,
+        useCase2: true,
+        useCase3: true,
+        submittedAt: true,
+        reviewedAt: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            ...(admin.role === 'SUPER_ADMIN' ? { companyId: true } : {}),
+          },
+        },
+      },
       orderBy: { submittedAt: 'desc' },
       skip: page * limit,
       take: limit,
