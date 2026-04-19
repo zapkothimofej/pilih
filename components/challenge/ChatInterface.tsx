@@ -343,10 +343,11 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
                   }
                 >
                   {isStreamingBubble ? (
-                    <span className="inline-flex gap-1 items-center">
-                      <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--text-muted)', animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--text-muted)', animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--text-muted)', animationDelay: '300ms' }} />
+                    <span className="streaming-indicator inline-flex gap-1 items-center" aria-hidden="true">
+                      <span className="streaming-dot" style={{ background: 'var(--text-muted)', animationDelay: '0ms' }} />
+                      <span className="streaming-dot" style={{ background: 'var(--text-muted)', animationDelay: '150ms' }} />
+                      <span className="streaming-dot" style={{ background: 'var(--text-muted)', animationDelay: '300ms' }} />
+                      <span className="streaming-fallback sr-only">Antwort wird generiert</span>
                     </span>
                   ) : msg.role === 'assistant' ? (
                     <MessageMarkdown content={msg.content} role="assistant" />
@@ -365,7 +366,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
                 {showJudgeLink && latestJudge && (
                   <button
                     onClick={() => setJudgeFeedback(latestJudge)}
-                    className="self-start text-[11px] px-2.5 py-1 rounded-full border transition-colors"
+                    className="tap-small self-start text-[11px] px-2.5 py-1 rounded-full border transition-colors"
                     style={{
                       background: 'var(--accent-dim)',
                       borderColor: 'var(--accent-border)',
@@ -409,7 +410,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
 
       {/* Input */}
       {!showRating && (
-        <div className="border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="safe-bottom border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
           <div className="flex gap-2">
             <textarea
               ref={textareaRef}
@@ -696,7 +697,7 @@ function CopyButton({
       type="button"
       onClick={handleCopy}
       aria-label={copied ? 'Kopiert' : 'Antwort kopieren'}
-      className={`text-[10px] font-medium px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${className ?? ''}`}
+      className={`tap-small text-[10px] font-medium px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${className ?? ''}`}
       style={baseStyle}
     >
       {copied ? (

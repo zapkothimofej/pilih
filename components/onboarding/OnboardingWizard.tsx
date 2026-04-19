@@ -283,20 +283,29 @@ export default function OnboardingWizard() {
   )
 }
 
-function FormInput({ label, placeholder, value, onChange }: {
+function FormInput({ label, placeholder, value, onChange, required = true }: {
   label: string
   placeholder: string
   value: string
   onChange: (v: string) => void
+  required?: boolean
 }) {
+  // The button-disabled gate didn't tell screen-reader users WHICH
+  // field was empty — aria-invalid + aria-required close that loop.
+  const isInvalid = required && value.trim().length === 0
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{label}</label>
+      <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+        {label}
+        {required && <span aria-hidden="true" style={{ color: 'var(--error)' }}> *</span>}
+      </label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-required={required}
+        aria-invalid={isInvalid ? true : undefined}
         className="input-accent w-full rounded-xl px-4 py-3 text-sm"
       />
     </div>

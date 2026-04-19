@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 export default function AppError({
@@ -12,6 +12,14 @@ export default function AppError({
 }) {
   const [retryCount, setRetryCount] = useState(0)
   const maxRetries = 3
+  const headingRef = useRef<HTMLHeadingElement>(null)
+
+  // Move focus to the heading on mount so screen-reader users hear
+  // the error announcement and keyboard users land somewhere
+  // meaningful after the previous page's focus target unmounted.
+  useEffect(() => {
+    headingRef.current?.focus()
+  }, [])
 
   function handleRetry() {
     if (retryCount >= maxRetries) return
@@ -20,7 +28,10 @@ export default function AppError({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-5 px-4">
+    <div
+      role="alert"
+      className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-5 px-4"
+    >
       <div
         className="w-14 h-14 rounded-2xl border flex items-center justify-center mx-auto"
         style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
@@ -28,7 +39,12 @@ export default function AppError({
         <ErrorIcon />
       </div>
       <div className="space-y-2">
-        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-xl font-bold focus:outline-none"
+          style={{ color: 'var(--text-primary)' }}
+        >
           Etwas ist schiefgelaufen
         </h1>
         <p className="text-sm max-w-sm" style={{ color: 'var(--text-secondary)' }}>

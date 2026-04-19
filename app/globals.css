@@ -241,6 +241,44 @@ button[class*="icon-"]:not(.tap-small),
   min-width: 44px;
 }
 
+/*
+ * Chat streaming indicator — three bouncing dots normally, but under
+ * reduced-motion we swap to a non-transform ellipsis so users who
+ * disabled motion still see a clear "working" signal instead of three
+ * static dots that look like a layout bug. Tailwind's animate-bounce
+ * is blanket-disabled by our reduced-motion rule above; this class
+ * uses its own keyframe so we can control both branches explicitly.
+ */
+.streaming-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  animation: streaming-bounce 1s ease-in-out infinite;
+}
+@keyframes streaming-bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.55; }
+  50%      { transform: translateY(-30%); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .streaming-dot {
+    animation: streaming-fade 1.2s ease-in-out infinite;
+    transform: none !important;
+  }
+  @keyframes streaming-fade {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 1; }
+  }
+}
+
+/*
+ * Safe-area insets — respect the iOS home indicator when the page is
+ * installed as a PWA. Only the sticky bottom chat input row needs it
+ * today; everything else is in a normal scrolled body.
+ */
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+}
+
 /* Accessible off-screen content — keeps text in the DOM for screen
    readers while hiding it visually. Tailwind ships this as .sr-only
    but we define it here too for components that bring tokens in via

@@ -109,7 +109,7 @@ export default function SpeechInput({ value, onChange, placeholder, rows = 3, la
           <button
             type="button"
             onClick={isListening ? stopListening : startListening}
-            className="absolute right-3 top-3 p-1.5 rounded-lg transition-all"
+            className="tap-small absolute right-3 top-3 p-1.5 rounded-lg transition-all"
             title={isListening ? 'Aufnahme stoppen' : 'Per Sprache eingeben'}
             aria-label={isListening ? 'Sprachaufnahme stoppen' : 'Per Sprache eingeben'}
             style={isListening

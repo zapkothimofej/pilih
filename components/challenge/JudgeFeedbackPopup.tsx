@@ -170,7 +170,7 @@ export default function JudgeFeedbackPopup({ feedback, onClose }: JudgeFeedbackP
                 ref={closeBtnRef}
                 onClick={onClose}
                 aria-label="Feedback schließen"
-                className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
+                className="tap-small w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
                 style={{ color: 'var(--text-muted)' }}
               >
                 <CloseIcon size={12} />
