@@ -2,11 +2,20 @@
 
 import { useState } from 'react'
 import { CheckIcon, CloseIcon } from '@/components/ui/icons'
-import type { FinalSubmission } from '@/app/generated/prisma/client'
+import type { Prisma, SubmissionStatus } from '@/app/generated/prisma/client'
 
 type UseCase = { title: string; description: string; prompt: string; result: string }
 
-type Submission = FinalSubmission & {
+// DTO narrowed to exactly what the server page selects. Never
+// carries llmReview — that would leak other admins' override notes.
+type Submission = {
+  id: string
+  status: SubmissionStatus
+  useCase1: Prisma.JsonValue
+  useCase2: Prisma.JsonValue
+  useCase3: Prisma.JsonValue
+  submittedAt: Date
+  reviewedAt: Date | null
   user: { id: string; name: string; email: string }
 }
 

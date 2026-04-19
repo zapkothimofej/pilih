@@ -84,11 +84,15 @@ export async function PATCH(req: Request) {
       where: { id: submissionId },
       include: { user: { select: { companyId: true } } },
     })
+    // Collapse "not found" and "wrong company" into a single 404 for
+    // COMPANY_ADMINs so the response doesn't leak whether a given id
+    // exists at another company. SUPER_ADMIN still sees the explicit
+    // 404-vs-403 split for operational clarity.
     if (!existing) {
       return NextResponse.json({ error: 'Einreichung nicht gefunden' }, { status: 404 })
     }
     if (admin.role === 'COMPANY_ADMIN' && existing.user.companyId !== admin.companyId) {
-      return NextResponse.json({ error: 'Keine Berechtigung für diese Einreichung' }, { status: 403 })
+      return NextResponse.json({ error: 'Einreichung nicht gefunden' }, { status: 404 })
     }
 
     const reviewWithNote = existing.llmReview
