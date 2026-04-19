@@ -38,3 +38,19 @@ Summary:
 
 ## [2026-04-18 17:00] session | round-2 concurrency review
 Touched: none
+
+## [2026-04-19 18:00] session | 3-round autonomous review-cool + wiki build
+Touched: wiki/index.md, wiki/security.md, wiki/prompt-injection.md, wiki/auth-flow.md, wiki/data-integrity.md, wiki/rate-limiting.md, wiki/stream-lifecycle.md, wiki/prompt-caching.md, wiki/judge-ai.md, wiki/adaptive-difficulty.md, wiki/reduced-motion.md, wiki/a11y-patterns.md, wiki/next16-proxy.md, wiki/webhook-idempotency.md, wiki/csrf-origin-guard.md, wiki/copy-tonality.md, wiki/gsap-patterns.md
+Summary:
+- 3 review rounds with 14 total parallel sub-agents (round 1: 6, round 2: 4, round 3: 4). Each round produced 8-15 new findings; none of the 3 were clean, so the 10-clean-round abort condition is not yet met — stopped at user "finish" request.
+- Security: wired lib/env.ts into all callsites + instrumentation.ts for boot-time validation; expanded logError PII scrubber (Clerk user IDs, Bearer tokens, svix sigs, Error.stack); CSP drops unsafe-eval in prod + upgrade-insecure-requests; svix timestamp skew asymmetric (5min future, 72h past); webhook body-size 64KB cap; rebuilt chat history server-side instead of trusting client payload; CSRF same-origin guard on all 9 mutating routes; escapeXmlText strips control chars; microphone Permissions-Policy restored for SpeechInput.
+- Next 16 / RSC: renamed middleware.ts → proxy.ts; maxDuration=60 on 4 LLM routes (prevents prod 504); getCurrentDbUser wrapped in React cache() (4× → 1× DB lookup per page).
+- Data integrity: @@unique([userId, dayNumber]) on Challenge + @@unique([userId, scheduledAt, type]) on Booking + @@index([userId, status]) on DailySession + @@index([companyId]) on User + @@index([createdAt]) on ProcessedWebhook; CHECK constraints on difficulty/currentDifficulty/judgeScore; LLM call moved out of Prisma $transaction; rate-limit reset-race fixed with conditional updateMany; lazy cleanup for RateLimitBucket + ProcessedWebhook; calcStreak UTC; booking 90-day max lead; submission APPROVED ratchet inside tx with AlreadyApprovedError; attempt Math.max(attemptNumber)+1; abschliessen Challenge read inside tx.
+- AI pipeline: prompt caching with cache_control on judge/submission/generator/chat simulator; temperature: 0 on judge + submission; shared lib/ai/llm.ts (stripCodeFences, extractText, assertNotTruncated); per-dimension scores plumbed end-to-end via lib/ai/judge-types.ts + rendered as DimensionBars with role=progressbar; retry path surfaces scrubbed prior error to model; stripCodeFences regex tightened; stream truncation yields in-band sentinel; abort signal propagated to generateChallenges + submission; chat simulator challenge context moved to second cached system block so every turn keeps domain awareness; adaptive JUST_RIGHT threshold bumped to 9/3 (was 8/4, degenerate); daily shuffle seeded by userId+YYYY-MM-DD.
+- UX/A11y: framer-motion fully removed; DifficultyRating proper radiogroup + arrow-key nav; global CSS disables Tailwind animate-* under reduced-motion + enforces 44px tap target with .tap-small opt-out; streaming dots swap to fade under reduced-motion; chat aria-live moved to sr-only status region; onboarding focus moves to step heading; error boundary focuses heading + role=alert; aria-invalid + aria-required on FormInput; --text-muted #7a7f95 for WCAG AA; safe-area-inset-bottom on chat input; certificate headline retoned.
+- Copy: judge score labels retoned to brand voice; "Stop" / "there" / "Generiere…" / "Kein Retry" / "1on1" tokens fixed; "Aufgabe" → "Challenge-Brief"; Impressum/Datenschutz/Kontakt footer stub; MwSt. notice.
+- Centralisation: lib/constants.ts, lib/errors.ts, lib/ai/judge-types.ts.
+- Hygiene: deleted lib/api-types.ts + logWarn; tsconfig target ES2022; @types/pg to devDeps; ESLint errors fixed; .claude/ gitignored.
+- Tests: 61/61 green throughout. typecheck clean.
+- 17 commits pushed to origin/main. 17 wiki pages with backlinks.
+
