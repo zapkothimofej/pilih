@@ -94,6 +94,9 @@ Touched: wiki/bundle-vitals.md
 ## [2026-04-18 23:59] session | round 7 review: network resilience + offline UX
 Touched: wiki/network-resilience.md, wiki/index.md
 
+## [2026-04-18 23:59] session | round 27 critical-only rescan
+Touched: none
+
 ## [2026-04-18 23:59] session | round 8 review: data-integrity tight rescan
 Touched: none
 

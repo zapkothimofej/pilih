@@ -43,6 +43,13 @@ Claude-maintained knowledge base for PILIH, the 21-day KI-Führerschein. Cross-l
 - [[input-validation]] — Round 6: Unicode, whitespace-only, zero-width, enum parity, numeric bounds
 - [[network-resilience]] — Round 7: fetch timeouts, 502 retry, offline detection, SSE reconnect, draft persistence
 - [[component-api]] — Round 7: prop shapes, boolean traps, defaults, Prisma leakage, key stability
+- [[bundle-vitals]] — Round 7: LCP, CLS, INP, bundle size, prefetch discipline
+- [[seo-metadata]] — Round 7: sitemap, robots.ts, OG image, authed no-index, metadataBase
+- [[ops-runbook]] — Round 5: migration order, CI/CD gaps, backup/restore, session continuity
+- [[gsap-performance]] — Round 5: FOUC, will-change, scaleX vs width, offscreen tweens
+- [[locale]] — Round 4: de-DE consistency, UTC streak, NBSP currency, decimal comma
+- [[testing]] — Round 4: covered surfaces + gaps (scrubString, csrf, escape, meanScore, env superRefine)
+- [[dead-code]] — Round 4: rolling audit log, removed/outstanding symbols
 
 ## How this works
 
