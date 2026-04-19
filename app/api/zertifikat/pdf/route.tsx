@@ -60,12 +60,20 @@ export async function GET() {
     if (timer) clearTimeout(timer)
   }
 
-  const filename = `PILIH-Zertifikat-${user.name.replace(/\s+/g, '-')}.pdf`
+  // Sanitize the filename before it lands in Content-Disposition.
+  // user.name comes from Clerk and can contain `"` (closes the quoted
+  // filename) or bidi/control chars that would malform the header.
+  // Strip to letters/digits/spaces/hyphens, collapse whitespace, cap
+  // length, and add an RFC 6266 filename* param for Unicode names.
+  const rawName = user.name.replace(/[^\p{L}\p{N}\s-]/gu, '').trim() || 'User'
+  const asciiSafe = rawName.replace(/\s+/g, '-').slice(0, 80)
+  const filename = `PILIH-Zertifikat-${asciiSafe}.pdf`
+  const encoded = encodeURIComponent(`PILIH-Zertifikat-${rawName}.pdf`)
 
   return new Response(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': `attachment; filename="${filename}"; filename*=UTF-8''${encoded}`,
       'Cache-Control': 'no-store',
     },
   })
