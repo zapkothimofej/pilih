@@ -49,7 +49,30 @@ const schema = z
           'NEXT_PUBLIC_APP_URL is required in production — it ends up in LinkedIn share links.',
       })
     }
+    // Catch a category of deploy disasters: a secret accidentally
+    // prefixed with NEXT_PUBLIC_ silently lands in the client bundle.
+    // Scan every NEXT_PUBLIC_* env var for secret-shaped values.
+    for (const [key, value] of Object.entries(process.env)) {
+      if (!key.startsWith('NEXT_PUBLIC_')) continue
+      if (typeof value !== 'string') continue
+      if (SECRET_SHAPES.some((re) => re.test(value))) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [key],
+          message: `${key} looks like a secret but is public. NEXT_PUBLIC_* values are inlined into the client bundle — rename without the prefix.`,
+        })
+      }
+    }
   })
+
+// Patterns that look like secrets. Conservative — we'd rather
+// false-positive at boot than leak a real key to the client bundle.
+const SECRET_SHAPES = [
+  /^sk-[A-Za-z0-9_-]{10,}/,
+  /^whsec_[A-Za-z0-9_-]{10,}/,
+  /^postgres(?:ql)?:\/\//i,
+  /^Bearer\s+[A-Za-z0-9._~+/=-]{20,}/i,
+]
 
 type Env = z.infer<typeof schema>
 

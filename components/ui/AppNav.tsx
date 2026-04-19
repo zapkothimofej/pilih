@@ -87,7 +87,10 @@ export default function AppNav({ user }: { user: { name: string; role: Role } })
                 background: 'var(--accent-dim)',
                 border: '1px solid var(--accent-border)',
                 opacity: 0,
-                willChange: 'transform, width',
+                // will-change promotes a composited layer permanently
+                // and costs GPU memory on every paint — removed so
+                // the pill only promotes during its ~250 ms tween
+                // (GSAP handles that internally).
               }}
             />
 

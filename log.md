@@ -60,3 +60,15 @@ Summary:
 ## [2026-04-18 23:59] session | round 4 review: locale/date/number consistency
 Touched: wiki/locale.md
 
+## [2026-04-18 23:59] session | round 5 review: secret lifecycle + supply chain
+Touched: wiki/secret-lifecycle.md
+
+## [2026-04-18 23:59] session | round 5 review: gsap animation performance
+Touched: wiki/gsap-performance.md
+
+## [2026-04-18 18:00] session | round 5 review: ops, migrations, DR
+Touched: wiki/ops-runbook.md
+
+
+## [2026-04-18 23:59] session | round 5 review: client state + perceived perf
+Touched: wiki/client-state.md, wiki/index.md

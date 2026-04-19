@@ -21,14 +21,20 @@ export default function XPBar({ xp }: { xp: number }) {
       if (!fill) return
 
       if (reduced) {
-        fill.style.width = `${progress * 100}%`
+        // Direct scaleX — fill width is 100% in CSS, we scale it down.
+        fill.style.transformOrigin = 'left'
+        fill.style.transform = `scaleX(${progress})`
         return
       }
 
+      // scaleX tweens the transform matrix, which the compositor
+      // handles without triggering layout on each frame. Previously
+      // `width` animated via layout recalc 60×/sec.
+      fill.style.transformOrigin = 'left'
       gsap.fromTo(
         fill,
-        { width: '0%' },
-        { width: `${progress * 100}%`, duration: 1.2, ease: 'power2.out' }
+        { scaleX: 0 },
+        { scaleX: progress, duration: 1.2, ease: 'power2.out' }
       )
 
       if (shimmer) {
@@ -69,10 +75,11 @@ export default function XPBar({ xp }: { xp: number }) {
         style={{ background: 'var(--border-default)' }}
       >
         <div
-          className="xp-fill h-full rounded-full"
+          className="xp-fill h-full w-full rounded-full"
           style={{
             background: 'linear-gradient(90deg, var(--accent) 0%, #a5b4fc 100%)',
-            width: '0%',
+            transform: 'scaleX(0)',
+            transformOrigin: 'left',
           }}
         />
         <div

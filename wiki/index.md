@@ -11,6 +11,7 @@ Claude-maintained knowledge base for PILIH, the 21-day KI-Führerschein. Cross-l
 
 ### Security & Correctness
 - [[security]] — env validation, CSP, PII scrub, CSRF, XML envelope
+- [[secret-lifecycle]] — key rotation, npm audit, supply-chain surface
 - [[prompt-injection]] — judge envelope, nonces, server-side verdict recomputation
 - [[auth-flow]] — testing-mode stub, fail-closed proxy, Clerk integration path
 - [[csrf-origin-guard]] — same-origin helper + applied routes
@@ -35,6 +36,7 @@ Claude-maintained knowledge base for PILIH, the 21-day KI-Führerschein. Cross-l
 - [[webhook-idempotency]] — svix skew asymmetry, ProcessedWebhook TTL
 - [[observability]] — cost surface, correlation IDs, audit trail, metric events
 - [[query-performance]] — Round 4: Prisma query plans, N+1 audit, pool sizing
+- [[client-state]] — Round 5: optimistic updates, router.refresh races, RSC→client state flow
 
 ## How this works
 
