@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 
+import { Prisma } from '@/app/generated/prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { requireRole } from '@/lib/utils/auth'
 import { assertSameOrigin } from '@/lib/utils/csrf'
@@ -19,8 +20,9 @@ const overrideSchema = z.object({
 })
 
 export async function GET(req: NextRequest) {
+  let admin
   try {
-    await requireRole(['COMPANY_ADMIN', 'SUPER_ADMIN'])
+    admin = await requireRole(['COMPANY_ADMIN', 'SUPER_ADMIN'])
   } catch {
     return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })
   }
@@ -29,7 +31,17 @@ export async function GET(req: NextRequest) {
     Object.fromEntries(req.nextUrl.searchParams)
   )
 
-  const where = status ? { status } : {}
+  // CRITICAL scoping fix: a COMPANY_ADMIN must NEVER see submissions
+  // from other companies. The server page wrapper already filters by
+  // companyId, but the paginator API was unscoped — a direct GET
+  // `/api/admin/submissions?page=1` from a COMPANY_ADMIN session used
+  // to return every other company's rows. Now scoped at the query.
+  const where: Prisma.FinalSubmissionWhereInput = {
+    ...(status ? { status } : {}),
+    ...(admin.role === 'COMPANY_ADMIN'
+      ? { user: { companyId: admin.companyId } }
+      : {}),
+  }
 
   const [rows, totalCount] = await prisma.$transaction([
     prisma.finalSubmission.findMany({

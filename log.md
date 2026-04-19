@@ -39,6 +39,9 @@ Summary:
 ## [2026-04-18 17:00] session | round-2 concurrency review
 Touched: none
 
+## [2026-04-18 20:30] session | round-4 observability + cost-surface review
+Touched: wiki/observability.md, wiki/index.md
+
 ## [2026-04-19 18:00] session | 3-round autonomous review-cool + wiki build
 Touched: wiki/index.md, wiki/security.md, wiki/prompt-injection.md, wiki/auth-flow.md, wiki/data-integrity.md, wiki/rate-limiting.md, wiki/stream-lifecycle.md, wiki/prompt-caching.md, wiki/judge-ai.md, wiki/adaptive-difficulty.md, wiki/reduced-motion.md, wiki/a11y-patterns.md, wiki/next16-proxy.md, wiki/webhook-idempotency.md, wiki/csrf-origin-guard.md, wiki/copy-tonality.md, wiki/gsap-patterns.md
 Summary:
@@ -53,4 +56,7 @@ Summary:
 - Hygiene: deleted lib/api-types.ts + logWarn; tsconfig target ES2022; @types/pg to devDeps; ESLint errors fixed; .claude/ gitignored.
 - Tests: 61/61 green throughout. typecheck clean.
 - 17 commits pushed to origin/main. 17 wiki pages with backlinks.
+
+## [2026-04-18 23:59] session | round 4 review: locale/date/number consistency
+Touched: wiki/locale.md
 

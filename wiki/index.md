@@ -33,6 +33,8 @@ Claude-maintained knowledge base for PILIH, the 21-day KI-Führerschein. Cross-l
 - [[next16-proxy]] — rename from middleware, instrumentation.ts, maxDuration
 - [[rate-limiting]] — Postgres bucket, reset-race guard, lazy cleanup
 - [[webhook-idempotency]] — svix skew asymmetry, ProcessedWebhook TTL
+- [[observability]] — cost surface, correlation IDs, audit trail, metric events
+- [[query-performance]] — Round 4: Prisma query plans, N+1 audit, pool sizing
 
 ## How this works
 
