@@ -124,13 +124,16 @@ export default function ChallengeWidget({
           className="px-5 pb-5 space-y-4 border-t pt-4"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
-              {/* Task */}
+              {/* Challenge brief — renamed from "Aufgabe" which collided
+                  with the onboarding vocabulary and confused users who
+                  asked whether the task inside the widget was a different
+                  thing from the Challenge they just chose. */}
               <div>
                 <div
                   className="text-[10px] font-bold uppercase tracking-widest mb-2"
                   style={{ color: 'var(--text-muted)' }}
                 >
-                  Aufgabe
+                  Challenge-Brief
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                   {description}

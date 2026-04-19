@@ -36,7 +36,7 @@ export default async function DashboardPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-            Hey {user.name.trim().split(/\s+/)[0] || 'there'}
+            Hey {user.name.trim().split(/\s+/)[0] || 'du'}
           </h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
             {completed === 0

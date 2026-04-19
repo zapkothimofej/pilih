@@ -99,7 +99,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
     // Abort after 120s to prevent infinite spinner on hung requests
     timeoutRef.current = setTimeout(() => {
       controller.abort()
-      if (isMountedRef.current) toast.error('Zeitüberschreitung. Bitte erneut versuchen.')
+      if (isMountedRef.current) toast.error('Die KI antwortet nicht. Versuch es nochmal — oft hilft ein kürzerer Prompt.')
     }, 120_000)
 
     let assistantContent = ''
@@ -427,7 +427,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
                 }}
               >
                 <CloseIcon size={12} />
-                Stop
+                Stoppen
               </button>
             ) : (
               <button

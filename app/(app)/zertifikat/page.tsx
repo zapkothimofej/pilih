@@ -31,10 +31,10 @@ export default async function ZertifikatPage() {
           <TrophyIcon size={28} />
         </div>
         <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
-          Glückwunsch!
+          21 Tage. 21 Challenges. Du hast&rsquo;s durchgezogen.
         </h1>
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Du hast deinen KI-Führerschein erhalten.
+          Dein KI-Führerschein ist da. Prompt it like it&rsquo;s hot.
         </p>
       </div>
 

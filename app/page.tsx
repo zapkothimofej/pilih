@@ -41,10 +41,20 @@ export default function LandingPage() {
       <LandingSteps />
 
       <footer
-        className="border-t py-6 text-center text-xs"
+        className="border-t py-6 text-center text-xs space-y-2"
         style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}
       >
-        Yesterday Academy &mdash; Prompt it like it&apos;s hot
+        <div>Yesterday Academy &mdash; Prompt it like it&apos;s hot</div>
+        {/* §5 TMG / DSGVO stub — placeholder routes so the links exist
+            in the DOM; real copy lands with the legal review. */}
+        <nav
+          aria-label="Rechtliche Hinweise"
+          className="flex justify-center gap-4"
+        >
+          <a href="/impressum" className="underline-offset-2 hover:underline">Impressum</a>
+          <a href="/datenschutz" className="underline-offset-2 hover:underline">Datenschutz</a>
+          <a href="mailto:hallo@yesterday.academy" className="underline-offset-2 hover:underline">Kontakt</a>
+        </nav>
       </footer>
     </main>
   )

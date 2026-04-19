@@ -3,21 +3,27 @@
 import type { User, Booking } from '@/app/generated/prisma/client'
 import { CheckIcon } from '@/components/ui/icons'
 
+// Prices shown as "X € zzgl. MwSt." — required by the German PAngV for
+// B2B pricing display. Adjust to "inkl. MwSt." once the pricing
+// strategy for B2C lands.
 const TIER_INFO = {
   BASE: {
     label: 'Base',
     price: '399 €',
+    priceNote: 'zzgl. MwSt.',
     features: ['21-Tage Challenge Programm', 'KI-Feedback (Judge AI)', 'Zertifikat + LinkedIn Badge'],
   },
   PRO: {
     label: 'Pro',
     price: '499 €',
+    priceNote: 'zzgl. MwSt.',
     features: ['Alles aus Base', 'Wöchentliches Gruppen-Meeting', 'Expert Feedback & Best Practices'],
   },
   PREMIUM: {
     label: 'Premium',
     price: '999 €',
-    features: ['Alles aus Pro', 'Wöchentliches 1on1 Coaching', 'Persönlicher Lernplan'],
+    priceNote: 'zzgl. MwSt.',
+    features: ['Alles aus Pro', 'Wöchentliches 1:1 Coaching', 'Persönlicher Lernplan'],
   },
 }
 
@@ -80,7 +86,7 @@ export default function EinstellungenClient({ user, bookings }: { user: User; bo
             {tierInfo.label}
           </span>
           <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            {tierInfo.price} / Person
+            {tierInfo.price} / Person <span className="text-xs">({tierInfo.priceNote})</span>
           </span>
         </div>
 
@@ -113,7 +119,7 @@ export default function EinstellungenClient({ user, bookings }: { user: User; bo
                 style={{ background: 'var(--accent-dim)', borderColor: 'var(--accent-border)' }}
               >
                 <div className="font-bold text-sm" style={{ color: 'var(--accent)' }}>Premium</div>
-                <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>999 € · 1on1</div>
+                <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>999 € · 1:1</div>
               </div>
             </div>
             <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
@@ -144,7 +150,7 @@ export default function EinstellungenClient({ user, bookings }: { user: User; bo
               Deine Meetings
             </h2>
             <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              {user.tier === 'PRO' ? 'Gruppen-Meetings' : '1on1 Coaching'}
+              {user.tier === 'PRO' ? 'Gruppen-Meetings' : '1:1 Coaching'}
             </span>
           </div>
 
@@ -168,7 +174,7 @@ export default function EinstellungenClient({ user, bookings }: { user: User; bo
                 >
                   <div>
                     <div className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                      {b.type === 'GROUP_MEETING' ? 'Gruppen-Meeting' : '1on1 Coaching'}
+                      {b.type === 'GROUP_MEETING' ? 'Gruppen-Meeting' : '1:1 Coaching'}
                     </div>
                     <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                       {new Date(b.scheduledAt).toLocaleDateString('de-DE')}

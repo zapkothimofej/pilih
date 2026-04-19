@@ -68,7 +68,7 @@ export default function AppError({
           className="px-5 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ background: 'var(--accent)', color: '#fff' }}
         >
-          {retryCount >= maxRetries ? 'Kein Retry mehr möglich' : 'Erneut versuchen'}
+          {retryCount >= maxRetries ? 'Bitte lade die Seite neu' : 'Erneut versuchen'}
         </button>
         <Link
           href="/dashboard"

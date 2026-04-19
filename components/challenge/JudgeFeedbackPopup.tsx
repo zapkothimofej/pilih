@@ -274,11 +274,14 @@ export default function JudgeFeedbackPopup({ feedback, onClose }: JudgeFeedbackP
 }
 
 function scoreLabel(score: number) {
-  if (score >= 9) return 'Herausragend'
-  if (score >= 7) return 'Sehr gut'
-  if (score >= 5) return 'Solide'
-  if (score >= 3) return 'Ausbaufähig'
-  return 'Noch viel Potenzial'
+  // Re-toned from school-report-card vocabulary to match the product's
+  // playful brand ("Prompt it like it's hot") and avoid patronising
+  // euphemisms at the bottom rung.
+  if (score >= 9) return 'Absolut on point'
+  if (score >= 7) return 'Starker Prompt'
+  if (score >= 5) return 'Solide Basis'
+  if (score >= 3) return 'Noch Luft nach oben'
+  return 'Das Thema lohnt sich'
 }
 
 function scoreColor(score: number) {
