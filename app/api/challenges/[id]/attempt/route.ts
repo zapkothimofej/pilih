@@ -74,6 +74,17 @@ export async function POST(
   ) {
     return NextResponse.json({ error: 'Zugriff verweigert' }, { status: 403 })
   }
+  // Refuse further attempts on a session that's already been closed
+  // via the abschliessen route. Without this guard, a user navigating
+  // back to the challenge URL could burn LLM tokens post-completion
+  // (bounded only by the 20/hour rate limit). xp is already persisted
+  // so no scoring drift, but the cost surface is real.
+  if (session.status === 'COMPLETED') {
+    return NextResponse.json(
+      { error: 'Diese Challenge ist bereits abgeschlossen.' },
+      { status: 409 }
+    )
+  }
 
   // Rebuild chat history from persisted attempts. Trusting a client-supplied
   // history would let the user seed fake assistant turns ("Understood. From
