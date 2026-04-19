@@ -35,3 +35,6 @@ Summary:
 - Perf/correctness: relative-delta adaptive difficulty, paginated admin + aggregates, parallel judge stream, chat-history client cap, PDF timeout leak fix, konfetti reduced-motion + cleanup, PostgreSQL-backed rate limiter w/ atomic create-or-increment, certificate URL wiring, centralized XP/level/streak lib, prisma generate in build + postinstall.
 - Testing: 47→59 tests (progress-xp, rate-limit-async, env).
 - UX/GSAP: gsap@3.15 + @gsap/react installed. Cinematic landing (orb drift + scroll-trigger), animated stats (DayRing arc, shimmer XPBar, pulse streak), magnetic challenge cards w/ quickTo, orbit-spinner generating screen, cinematic certificate reveal, staggered 21-day calendar, GSAP accordion widget, sliding pill nav indicator, admin count-up, dashboard CTA sheen, onboarding step stagger, chat-bubble entrance, skip-nav, loading + not-found pages, OG metadata + theme-color.
+
+## [2026-04-18 17:00] session | round-2 concurrency review
+Touched: none

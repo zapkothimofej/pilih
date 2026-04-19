@@ -5,10 +5,14 @@ import { prisma } from '@/lib/db/prisma'
 import { logError } from '@/lib/utils/log'
 import { env } from '@/lib/env'
 
-// Reject payloads outside this skew before verifying the signature —
-// Svix timestamps are monotonic on their side, so any drift beyond this
-// is either clock-skew (which the sender fixes) or a replay attempt.
-const SVIX_MAX_SKEW_MS = 5 * 60 * 1000
+// Asymmetric skew check: tight 5-min tolerance on future timestamps
+// (a webhook claiming to be from the future is either clock-skew on
+// Clerk's side, fixable, or an injection attempt) and a 72-hour
+// tolerance for stale ones matching Svix's retry window. Svix's own
+// SDK re-checks the signed timestamp during wh.verify; this is
+// defense-in-depth cheap enough to run before touching the DB.
+const SVIX_MAX_FUTURE_MS = 5 * 60 * 1000
+const SVIX_RETRY_WINDOW_MS = 72 * 60 * 60 * 1000
 const MAX_WEBHOOK_BYTES = 64 * 1024
 
 // Lazy cleanup: svix retries for ~72 h, so anything older than 30 d is
@@ -60,9 +64,15 @@ export async function POST(req: Request) {
   if (!Number.isFinite(svixTsSeconds)) {
     return new Response('Svix-Timestamp ungültig', { status: 400 })
   }
-  const drift = Math.abs(Date.now() - svixTsSeconds * 1000)
-  if (drift > SVIX_MAX_SKEW_MS) {
-    return new Response('Svix-Timestamp außerhalb der erlaubten Zeitzone', { status: 400 })
+  const skew = Date.now() - svixTsSeconds * 1000
+  // skew > 0: webhook is older than our now. skew < 0: webhook is
+  // claiming a future timestamp. Reject a tight future bound and a
+  // loose past bound that matches Svix's retry window.
+  if (skew < -SVIX_MAX_FUTURE_MS) {
+    return new Response('Svix-Timestamp in der Zukunft', { status: 400 })
+  }
+  if (skew > SVIX_RETRY_WINDOW_MS) {
+    return new Response('Svix-Timestamp zu alt', { status: 400 })
   }
 
   const declaredLength = Number(req.headers.get('content-length') ?? '0')
