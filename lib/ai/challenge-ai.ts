@@ -210,7 +210,8 @@ export async function* streamChallengeResponse(
   challengeDescription: string,
   chatHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
   userPrompt: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onFinal?: (message: import('@anthropic-ai/sdk').default.Message) => void
 ): AsyncGenerator<string> {
   // Schema permits up to 800 chars; match that so we don't silently clip
   // domain context out of the assistant's awareness.
@@ -267,6 +268,7 @@ Nutze diesen Kontext, um die Domäne der Aufgabe zu verstehen. Bestätige/erwäh
   // Surface max_tokens truncation in-band so the client can label the
   // response as cut off instead of pretending it finished cleanly.
   const finalMessage = await stream.finalMessage()
+  onFinal?.(finalMessage)
   if (finalMessage.stop_reason === 'max_tokens') {
     yield '\n\n_[Antwort wurde gekürzt — max_tokens erreicht]_'
   }

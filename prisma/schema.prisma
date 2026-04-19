@@ -165,11 +165,36 @@ model PromptAttempt {
   judgeScore    Int
   improvements  String[]
   attemptNumber Int
+  // Anthropic usage for this attempt — sum of Haiku (sim) + Sonnet
+  // (judge). Nullable so historical rows predating the column don't
+  // need a backfill. Queryable for per-user cost + cache-hit-ratio.
+  tokensIn          Int?
+  tokensOut         Int?
+  cacheReadTokens   Int?
+  cacheCreateTokens Int?
+  latencyMs         Int?
   createdAt     DateTime     @default(now())
 
   @@unique([sessionId, attemptNumber])
   @@index([userId])
   @@index([sessionId])
+}
+
+// Immutable log of admin actions for DSGVO / B2B compliance. Today's
+// adminOverride lived inside FinalSubmission.llmReview JSON and a
+// second override clobbered the first — no history.
+model AuditEvent {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String   // e.g. "submission.override", "user.role.change"
+  targetType String   // e.g. "FinalSubmission", "User"
+  targetId   String
+  diff       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
+  @@index([createdAt])
 }
 
 model FinalSubmission {

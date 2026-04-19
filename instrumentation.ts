@@ -9,3 +9,23 @@ export async function register(): Promise<void> {
   const { env } = await import('./lib/env')
   env()
 }
+
+// Next.js 16 `onRequestError` hook — called when an uncaught error
+// bubbles out of a route handler or server component. Ships to our
+// structured logger so prod errors are queryable in Vercel log
+// aggregation alongside the rest. Next.js's own digest is attached
+// to the surfaced `error.tsx` so users + server logs can correlate.
+export async function onRequestError(
+  err: unknown,
+  request: { path?: string; method?: string; headers?: Record<string, string> },
+  context: { routerKind?: string; routePath?: string; routeType?: string }
+): Promise<void> {
+  const { logError } = await import('./lib/utils/log')
+  logError('request-error', {
+    path: request.path,
+    method: request.method,
+    routePath: context.routePath,
+    routeType: context.routeType,
+    err,
+  })
+}

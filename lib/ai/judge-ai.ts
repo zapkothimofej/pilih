@@ -95,11 +95,13 @@ function safeErrorForModel(err: unknown): string {
   return scrubString(raw).slice(0, 300)
 }
 
+// The raw Anthropic Message is attached to the returned payload so
+// callers can persist usage data alongside the score.
 export async function judgePrompt(
   challengeDescription: string,
   userPrompt: string,
   signal?: AbortSignal
-): Promise<JudgeFeedback> {
+): Promise<JudgeFeedback & { _message?: import('@anthropic-ai/sdk').default.Message }> {
   const tag = randomTag()
   const userMessage = `<challenge_${tag}>
 ${escapeXmlText(challengeDescription)}
@@ -185,6 +187,7 @@ Bewerte den Prompt des Lernenden anhand der 6 Dimensionen der Rubrik und gib JSO
         strengths: parsed.strengths,
         improvements: parsed.improvements,
         techniqueFocus: parsed.techniqueFocus,
+        _message: message,
       }
     } catch (err) {
       lastError = err

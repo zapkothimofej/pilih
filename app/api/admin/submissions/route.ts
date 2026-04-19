@@ -100,9 +100,27 @@ export async function PATCH(req: Request) {
           adminOverride: { status, note, reviewerId: admin.id, reviewedAt: new Date().toISOString() },
         })
 
-    const updated = await prisma.finalSubmission.update({
-      where: { id: submissionId },
-      data: { status, llmReview: reviewWithNote, reviewedAt: new Date() },
+    // Atomically write the override AND the AuditEvent so the
+    // append-only admin trail can't drift from the row state.
+    const updated = await prisma.$transaction(async (tx) => {
+      const row = await tx.finalSubmission.update({
+        where: { id: submissionId },
+        data: { status, llmReview: reviewWithNote, reviewedAt: new Date() },
+      })
+      await tx.auditEvent.create({
+        data: {
+          actorId: admin.id,
+          action: 'submission.override',
+          targetType: 'FinalSubmission',
+          targetId: submissionId,
+          diff: {
+            from: existing.status,
+            to: status,
+            note: note ?? null,
+          },
+        },
+      })
+      return row
     })
     return NextResponse.json({ success: true, status: updated.status })
   } catch (err) {

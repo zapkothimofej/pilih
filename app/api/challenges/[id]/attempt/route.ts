@@ -5,6 +5,7 @@ import { Prisma } from '@/app/generated/prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { streamChallengeResponse } from '@/lib/ai/challenge-ai'
 import { judgePrompt } from '@/lib/ai/judge-ai'
+import { sumUsage } from '@/lib/ai/llm'
 import { rateLimitAsync, rateLimitHeaders } from '@/lib/utils/rate-limit'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 import { assertSameOrigin } from '@/lib/utils/csrf'
@@ -110,6 +111,8 @@ export async function POST(
   req.signal.addEventListener('abort', () => judgeAbort.abort())
   const encoder = new TextEncoder()
   let fullResponse = ''
+  let haikuFinalMessage: import('@anthropic-ai/sdk').default.Message | null = null
+  const startedAt = Date.now()
   const judgePromise = judgePrompt(
     challenge.description,
     userPrompt,
@@ -151,12 +154,18 @@ export async function POST(
       })
 
       try {
-        // Challenge-AI streamen
+        // Challenge-AI streamen. onFinal captures the Anthropic
+        // Message at stream-end so we can persist its usage along
+        // with the judge's, turning per-attempt cost into a
+        // queryable column instead of a log grep.
         for await (const chunk of streamChallengeResponse(
           challenge.description,
           chatHistory,
           userPrompt,
-          req.signal
+          req.signal,
+          (m) => {
+            haikuFinalMessage = m
+          }
         )) {
           if (req.signal.aborted) break
           fullResponse += chunk
@@ -192,6 +201,7 @@ export async function POST(
           })
           const nextAttemptNumber = (maxAttempt._max.attemptNumber ?? 0) + 1
           try {
+            const usage = sumUsage([haikuFinalMessage, judgeFeedback._message ?? null])
             attempt = await prisma.promptAttempt.create({
               data: {
                 sessionId,
@@ -202,6 +212,11 @@ export async function POST(
                 judgeScore: judgeFeedback.score,
                 improvements: judgeFeedback.improvements,
                 attemptNumber: nextAttemptNumber,
+                tokensIn: usage.tokensIn,
+                tokensOut: usage.tokensOut,
+                cacheReadTokens: usage.cacheReadTokens,
+                cacheCreateTokens: usage.cacheCreateTokens,
+                latencyMs: Date.now() - startedAt,
               },
             })
           } catch (err) {
