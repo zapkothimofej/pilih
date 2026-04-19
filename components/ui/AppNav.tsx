@@ -17,11 +17,15 @@ import {
 } from '@/components/ui/icons'
 import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
 
+// prefetch: false on routes whose RSC render pulls heavy Prisma work
+// (fortschritt = 21 sessions + challenges + attempts; buchung = full
+// bookings findMany). Hovering the nav shouldn't silently trigger a
+// DB fan-out for every dashboard paint.
 const navItems = [
-  { href: '/dashboard', label: 'Home', icon: HomeIcon },
-  { href: '/challenge/heute', label: 'Challenge', icon: TargetIcon },
-  { href: '/fortschritt', label: 'Fortschritt', icon: BarChartIcon },
-  { href: '/buchung', label: 'Coaching', icon: CalendarIcon },
+  { href: '/dashboard', label: 'Home', icon: HomeIcon, prefetch: true },
+  { href: '/challenge/heute', label: 'Challenge', icon: TargetIcon, prefetch: true },
+  { href: '/fortschritt', label: 'Fortschritt', icon: BarChartIcon, prefetch: false },
+  { href: '/buchung', label: 'Coaching', icon: CalendarIcon, prefetch: false },
 ]
 
 export default function AppNav({ user }: { user: { name: string; role: Role } }) {
@@ -102,6 +106,7 @@ export default function AppNav({ user }: { user: { name: string; role: Role } })
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={item.prefetch}
                   data-active={active}
                   className="relative z-10 px-3 py-1.5 rounded-lg text-sm transition-colors"
                   style={{ color: active ? 'var(--accent)' : 'var(--text-secondary)' }}

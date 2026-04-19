@@ -84,3 +84,12 @@ Touched: wiki/input-validation.md, wiki/index.md
 
 ## [2026-04-18 23:59] session | round 6 review: keyboard + SR a11y
 Touched: wiki/keyboard-a11y.md, wiki/a11y-patterns.md, wiki/index.md
+
+## [2026-04-18 23:59] session | round 7 review: SEO + metadata
+Touched: wiki/seo-metadata.md
+
+## [2026-04-18 23:59] session | round 7 review: bundle + CWV
+Touched: wiki/bundle-vitals.md
+
+## [2026-04-18 23:59] session | round 7 review: network resilience + offline UX
+Touched: wiki/network-resilience.md, wiki/index.md

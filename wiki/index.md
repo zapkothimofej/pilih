@@ -41,6 +41,8 @@ Claude-maintained knowledge base for PILIH, the 21-day KI-Führerschein. Cross-l
 - [[react19-idioms]] — Round 6: server actions, useActionState, useOptimistic, use(), useTransition
 - [[scale-tenancy]] — Round 6: multi-tenant patterns, seat quotas, null-company orphans, cert fan-out
 - [[input-validation]] — Round 6: Unicode, whitespace-only, zero-width, enum parity, numeric bounds
+- [[network-resilience]] — Round 7: fetch timeouts, 502 retry, offline detection, SSE reconnect, draft persistence
+- [[component-api]] — Round 7: prop shapes, boolean traps, defaults, Prisma leakage, key stability
 
 ## How this works
 
