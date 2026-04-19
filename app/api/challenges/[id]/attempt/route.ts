@@ -10,6 +10,10 @@ import { getCurrentDbUser } from '@/lib/utils/auth'
 import { assertSameOrigin } from '@/lib/utils/csrf'
 import { logError } from '@/lib/utils/log'
 
+// Haiku stream + Sonnet judge overlap — upper bound protects against
+// the 120 s client timeout defined in ChatInterface.tsx.
+export const maxDuration = 60
+
 // 20 attempts per hour per user — covers a full day's active work
 const ATTEMPT_LIMIT = 20
 const ATTEMPT_WINDOW_MS = 60 * 60 * 1000

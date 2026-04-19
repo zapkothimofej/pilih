@@ -12,23 +12,9 @@ import DifficultyRating from './DifficultyRating'
 import { SendIcon, BotIcon, CheckIcon, CloseIcon } from '@/components/ui/icons'
 import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
 
+import type { JudgeDimensions, JudgeFeedback } from '@/lib/ai/judge-types'
+
 type Message = { role: 'user' | 'assistant'; content: string }
-type JudgeDimensions = {
-  specificity: number
-  context: number
-  role: number
-  format: number
-  constraints: number
-  reasoning: number
-}
-type JudgeFeedback = {
-  score: number
-  dimensions: JudgeDimensions
-  feedback: string
-  strengths: string[]
-  improvements: string[]
-  techniqueFocus: string
-}
 type JudgeInternal = JudgeFeedback & { attemptNumber: number }
 type DiffRating = 'TOO_EASY' | 'JUST_RIGHT' | 'TOO_HARD'
 

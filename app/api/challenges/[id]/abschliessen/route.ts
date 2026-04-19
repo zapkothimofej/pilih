@@ -5,6 +5,8 @@ import { prisma } from '@/lib/db/prisma'
 import { getNextDifficultyWithScore } from '@/lib/adaptive/difficulty'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 import { assertSameOrigin } from '@/lib/utils/csrf'
+import { xpForDifficulty } from '@/lib/constants'
+import { ChallengeNotFoundError } from '@/lib/errors'
 
 const bodySchema = z.object({
   sessionId: z.string().min(1),
@@ -67,10 +69,10 @@ export async function POST(
         where: { id: challengeId },
         select: { currentDifficulty: true },
       })
-      if (!challenge) throw new Error('CHALLENGE_NOT_FOUND')
+      if (!challenge) throw new ChallengeNotFoundError()
 
       if (current?.status === 'COMPLETED') {
-        const xp = current.xpEarned ?? 100 + (challenge.currentDifficulty - 1) * 20
+        const xp = current.xpEarned ?? xpForDifficulty(challenge.currentDifficulty)
         return { xp, nextDifficulty: challenge.currentDifficulty, alreadyCompleted: true }
       }
 
@@ -84,7 +86,7 @@ export async function POST(
       // incomplete challenge would collapse the spread to a single
       // value and break selectDailyChallenges.
       const delta = nextDifficulty - challenge.currentDifficulty
-      const xp = 100 + (challenge.currentDifficulty - 1) * 20
+      const xp = xpForDifficulty(challenge.currentDifficulty)
 
       await tx.dailySession.update({
         where: { id: sessionId },
@@ -111,7 +113,7 @@ export async function POST(
       return { xp, nextDifficulty, alreadyCompleted: false }
     })
   } catch (err) {
-    if (err instanceof Error && err.message === 'CHALLENGE_NOT_FOUND') {
+    if (err instanceof ChallengeNotFoundError) {
       return NextResponse.json({ error: 'Challenge nicht gefunden' }, { status: 404 })
     }
     throw err

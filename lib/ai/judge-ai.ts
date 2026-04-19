@@ -10,23 +10,8 @@ import { stripCodeFences, extractText, assertNotTruncated } from '@/lib/ai/llm'
 // Fully isolated client — no shared context with challenge-ai.ts
 const client = new Anthropic({ apiKey: env().ANTHROPIC_API_KEY })
 
-export type JudgeDimensions = {
-  specificity: number
-  context: number
-  role: number
-  format: number
-  constraints: number
-  reasoning: number
-}
-
-export type JudgeFeedback = {
-  score: number
-  dimensions: JudgeDimensions
-  feedback: string
-  improvements: string[]
-  strengths: string[]
-  techniqueFocus: string
-}
+export type { JudgeDimensions, JudgeFeedback } from '@/lib/ai/judge-types'
+import type { JudgeDimensions, JudgeFeedback } from '@/lib/ai/judge-types'
 
 // Per-request random envelope tag so a prompt-injection can't guess the
 // delimiter it would need to close to inject sibling XML.

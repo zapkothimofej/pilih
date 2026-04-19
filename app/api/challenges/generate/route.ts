@@ -7,6 +7,11 @@ import { getCurrentDbUser } from '@/lib/utils/auth'
 import { assertSameOrigin } from '@/lib/utils/csrf'
 import { logError } from '@/lib/utils/log'
 
+// Sonnet challenge generation typically runs 15–40 s; the default
+// Vercel function timeout is 10 s on hobby and 15 s on pro. Force the
+// upper bound so the LLM can finish.
+export const maxDuration = 60
+
 // 3 requests per hour — challenge generation is expensive (Claude Sonnet, 21 challenges)
 const GENERATE_LIMIT = 3
 const GENERATE_WINDOW_MS = 60 * 60 * 1000

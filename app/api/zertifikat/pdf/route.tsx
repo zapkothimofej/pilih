@@ -8,6 +8,9 @@ import { averageScore } from '@/lib/progress/xp'
 import CertificatePdf from '@/components/zertifikat/CertificatePdf'
 
 export const dynamic = 'force-dynamic'
+// @react-pdf/renderer with custom fonts + glyphs regularly takes
+// 15-30 s for a full certificate; cover that with a generous bound.
+export const maxDuration = 45
 
 const PDF_LIMIT = 2
 const PDF_WINDOW_MS = 60 * 60 * 1000

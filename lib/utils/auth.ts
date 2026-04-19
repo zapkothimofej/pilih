@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { prisma } from '@/lib/db/prisma'
 import type { Role } from '@/app/generated/prisma/client'
 
@@ -19,10 +20,13 @@ function assertNotProduction(): void {
   }
 }
 
-export async function getCurrentDbUser() {
+// cache() dedupes the Prisma lookup within a single RSC render tree.
+// Layouts, pages and nested server components all call this — previously
+// a single /dashboard request hit the DB 4 times; now once.
+export const getCurrentDbUser = cache(async () => {
   assertNotProduction()
   return prisma.user.findUnique({ where: { id: TEST_USER_ID } })
-}
+})
 
 export async function requireRole(allowedRoles: Role[]) {
   const user = await getCurrentDbUser()

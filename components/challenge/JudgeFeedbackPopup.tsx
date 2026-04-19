@@ -6,31 +6,18 @@ import { useGSAP } from '@gsap/react'
 import { BotIcon, CloseIcon, CheckIcon, ArrowRightIcon } from '@/components/ui/icons'
 import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
 
-type JudgeDimensions = {
-  specificity: number
-  context: number
-  role: number
-  format: number
-  constraints: number
-  reasoning: number
-}
+import type { JudgeDimensions, JudgeFeedback } from '@/lib/ai/judge-types'
 
-type JudgeFeedback = {
-  score: number
-  dimensions: JudgeDimensions
-  feedback: string
-  strengths: string[]
-  improvements: string[]
-  techniqueFocus: string
-}
-
+// German labels so the rubric doesn't half-mix DE/EN ("Constraints" +
+// "Reasoning" used to slip through). Keys stay the English schema
+// field names so the SSE payload shape is untouched.
 const DIMENSION_LABELS: Record<keyof JudgeDimensions, string> = {
   specificity: 'Spezifität',
   context: 'Kontext',
   role: 'Rolle',
   format: 'Format',
-  constraints: 'Constraints',
-  reasoning: 'Reasoning',
+  constraints: 'Vorgaben',
+  reasoning: 'Begründung',
 }
 
 interface JudgeFeedbackPopupProps {

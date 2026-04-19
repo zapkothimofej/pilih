@@ -1,3 +1,7 @@
+import { xpForDifficulty } from '@/lib/constants'
+
+export { xpForDifficulty }
+
 type SessionWithChallenge = {
   xpEarned: number | null
   selectedChallenge: { currentDifficulty: number } | null
@@ -9,7 +13,7 @@ type SessionWithChallenge = {
 export function sessionXp(session: SessionWithChallenge): number {
   if (session.xpEarned != null) return session.xpEarned
   const diff = session.selectedChallenge?.currentDifficulty ?? 1
-  return 100 + (diff - 1) * 20
+  return xpForDifficulty(diff)
 }
 
 export function totalXp(sessions: SessionWithChallenge[]): number {

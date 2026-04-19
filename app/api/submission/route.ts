@@ -11,6 +11,11 @@ import { assertSameOrigin } from '@/lib/utils/csrf'
 import { scrubString } from '@/lib/utils/log'
 import { env } from '@/lib/env'
 import { stripCodeFences, extractText, assertNotTruncated } from '@/lib/ai/llm'
+import { AlreadyApprovedError } from '@/lib/errors'
+
+// Sonnet review up to 2 retries — sit well clear of Vercel's default
+// function timeout.
+export const maxDuration = 60
 
 const client = new Anthropic({ apiKey: env().ANTHROPIC_API_KEY })
 
@@ -189,8 +194,14 @@ Bewerte die 3 Use-Cases nach der Rubrik und gib JSON zurück:
   }
 
   if (!review) {
+    // Scrub the error detail — zod.flatten echoes the offending input
+    // value, which can include the user's submitted prompt text
+    // (containing an email or key-shape by accident).
+    const safeDetail = scrubString(
+      lastError instanceof Error ? lastError.message : String(lastError)
+    ).slice(0, 300)
     return NextResponse.json(
-      { error: 'Review konnte nicht erzeugt werden. Bitte später erneut versuchen.', detail: String(lastError) },
+      { error: 'Review konnte nicht erzeugt werden. Bitte später erneut versuchen.', detail: safeDetail },
       { status: 502 }
     )
   }
@@ -227,7 +238,7 @@ Bewerte die 3 Use-Cases nach der Rubrik und gib JSON zurück:
     submission = await prisma.$transaction(async (tx) => {
       const current = await tx.finalSubmission.findUnique({ where: { userId: user.id } })
       if (current?.status === 'APPROVED') {
-        throw new Error('ALREADY_APPROVED')
+        throw new AlreadyApprovedError()
       }
       return tx.finalSubmission.upsert({
         where: { userId: user.id },
@@ -251,7 +262,7 @@ Bewerte die 3 Use-Cases nach der Rubrik und gib JSON zurück:
       })
     })
   } catch (err) {
-    if (err instanceof Error && err.message === 'ALREADY_APPROVED') {
+    if (err instanceof AlreadyApprovedError) {
       return NextResponse.json(
         { error: 'Bereits bestanden — keine erneute Einreichung möglich.' },
         { status: 409 }
