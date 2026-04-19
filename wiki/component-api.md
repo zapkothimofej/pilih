@@ -16,101 +16,64 @@ render props. Rounds 3 + 6 killed those.
 
 ## Dimension 1 — Boolean-trap props (score 8/10)
 
-Three+ booleans on one component typically hide a state enum. The app
-is unusually clean here — most "toggles" are independent concerns, not
-modes. One violation.
+3+ booleans typically hide a state enum. App is clean — one violation.
 
-- **F1.1** (medium): `ChallengeTodayClient` (`app/(app)/challenge/
-  heute/ChallengeTodayClient.tsx:13-15`) carries
-  `poolEmpty?: boolean` + an implicit `challenges.length === 0` flag
-  + `showLowPoolNotice` derived from `challenges.length < 3`. The
-  render branch at `:67` is `showEmptyState = poolEmpty ||
-  challenges.length === 0`. Two sources of truth for "pool is empty"
-  will drift — a server-side `poolEmpty: true` with a non-empty
-  `challenges: [...]` is a contradictory state the types allow. Fold
-  to a discriminated union:
+- **F1.1** (medium): `ChallengeTodayClient`
+  (`ChallengeTodayClient.tsx:13-15`) carries `poolEmpty?: boolean` +
+  implicit `challenges.length === 0` + derived `showLowPoolNotice`.
+  `:67` computes `showEmptyState = poolEmpty || challenges.length
+  === 0`. Two sources of truth; server-side `poolEmpty: true` with a
+  non-empty `challenges: [...]` is representable. Fold to a DU:
   ```ts
   type PoolState =
     | { kind: 'empty' }
     | { kind: 'low'; challenges: Challenge[]; poolSize: number }
     | { kind: 'ok'; challenges: Challenge[] }
   ```
-  Severity: medium (today it only breaks if the server miscounts).
-- **F1.2** (low): `ChatInterface` state carries `isStreaming`,
-  `showRating`, `ratingLoading`, `judgeFeedback`, `latestJudge` —
-  five booleans/nullables that encode a state machine (see D14
-  below). Not a prop API concern, but the same anti-pattern.
-- **F1.3** (info): `AnimatedNumber` has `onScroll?: boolean`
-  (`AnimatedNumber.tsx:20`) — one boolean, justified. No trap.
-- **F1.4** (info): No component has 3+ booleans on its prop
-  interface. Anti-pattern genuinely absent.
+- **F1.2** (low): `ChatInterface` holds `isStreaming, showRating,
+  ratingLoading, judgeFeedback, latestJudge` — a 5-flag FSM (see D14).
+  Not a prop API concern but same anti-pattern.
+- **F1.3** (info): `AnimatedNumber.onScroll?: boolean` — lone flag,
+  justified. No other component has 3+ booleans.
 
 ## Dimension 2 — Default-value consistency (score 5/10)
 
 `AnimatedNumber` defaults `duration = 1.2` and `onScroll = true`
-(`AnimatedNumber.tsx:30, 36`). Every caller overrides at least one:
+(`AnimatedNumber.tsx:30, 36`). Caller audit:
 
-| Caller | duration | onScroll | Notes |
-|---|---|---|---|
-| `XPBar:66` | 1.1 | false | overrides both |
-| `StreakCounter:51` | 0.9 | false | overrides both |
-| `DayRing:70` | 1.3 | false | overrides both |
-| `AdminClient:90` | (default) | false | overrides onScroll |
+| Caller | duration | onScroll |
+|---|---|---|
+| `XPBar:66` | 1.1 | false |
+| `StreakCounter:51` | 0.9 | false |
+| `DayRing:70` | 1.3 | false |
+| `AdminClient:90` | (default) | false |
 
-- **F2.1** (medium): **Every** dashboard usage passes
-  `onScroll={false}`. The default `true` only serves scroll-triggered
-  counters that don't exist in this codebase (`AdminClient`'s stat
-  grid is above-the-fold). The default has inverted polarity —
-  callers who forget will get a counter that renders `0` until the
-  user scrolls, which on a dashboard above the fold means **never
-  animating** if the element is already in view at mount (the
-  `ScrollTrigger.create` with `start: 'top 90%'` fires on enter, but
-  if it's already past that line, `once: true` may or may not fire
-  depending on GSAP initial-evaluation order). Flip the default to
-  `onScroll = false` and explicitly opt in at the three existing
-  call sites (there are none). Saves four lines and eliminates a
-  footgun. **Severity: medium**.
-- **F2.2** (low): Duration spread 0.9–1.3 s across four call sites
-  reflects genuine UI beats (`StreakCounter` ticks faster than
-  `DayRing` because it's a smaller number). Defaults don't need to
-  change — but the 1.2 s default matches **no** caller. A default
-  nobody uses is noise. Set default to 1.0 s or remove and require.
-  **Severity: low** (cosmetic, drift risk only).
-- **F2.3** (medium): `SpeechInput` (`components/onboarding/
-  SpeechInput.tsx:14`) defaults `rows = 3`; the single caller
-  (`OnboardingWizard:266`) overrides to `rows={5}`. Default
-  unreached. Either remove the default (force the caller to pick) or
-  align to 5. **Severity: low**.
-- **F2.4** (info): `FormInput.required` defaults `true`
-  (`OnboardingWizard:286`); caller never passes anything else — see
-  D3.
+- **F2.1** (medium): **Every** caller passes `onScroll={false}`.
+  The `true` default serves no existing call site; callers who
+  forget get a counter that may never animate (if already past the
+  `top 90%` trigger at mount, `once: true` behaviour is
+  order-sensitive). Flip the default to `false`. **Severity:
+  medium** (footgun).
+- **F2.2** (low): `duration = 1.2` matches **no** caller. A
+  default nobody uses is noise. Align to 1.0 s or require.
+- **F2.3** (low): `SpeechInput.rows = 3` default; sole caller
+  (`OnboardingWizard:266`) passes `5`. Default unreached.
+- **F2.4** (info): `FormInput.required = true` — see D3.
 
 ## Dimension 3 — Optional-vs-required drift (score 7/10)
 
-Props typed as optional but always passed:
-
 - **F3.1** (low): `FormInput.required?: boolean = true`
-  (`OnboardingWizard:291`) — only three call sites, none override.
-  Since the `aria-invalid` + `aria-required` a11y path relies on it
-  being truthful (see [[a11y-patterns]]) keeping the escape hatch is
-  fine, but prefer `required: boolean` (no default) so a future
-  "optional department" field doesn't silently inherit required-ness.
-  **Severity: low**.
-- **F3.2** (medium): `ChallengeTodayClient.poolSize?: number`
-  (`ChallengeTodayClient.tsx:14`) is defensively optional and at
-  `:132` the render branches on `typeof poolSize === 'number'`. The
-  server page **always** knows the pool size — no caller omits it.
-  Drop the `?`, drop the typeof-guard, one dead branch gone.
-  **Severity: low**.
-- **F3.3** (medium): `SpeechInput.label?: string` is optional; the
-  single caller passes one. If label is meant to be required for
-  a11y (screen readers read "textarea" unlabeled otherwise),
-  optionality hides the contract. Either require it OR fall back to
-  `aria-label={placeholder}`. Today nothing enforces it. **Severity:
-  medium** (a11y drift surface).
-- **F3.4** (low): `FortschrittCalendar`'s `Day.title?: string`
-  (`FortschrittCalendar.tsx:15`) — genuinely optional for
-  future-days. Correct as-is.
+  (`OnboardingWizard:291`) — three call sites, no override. Prefer
+  explicit `required: boolean` so a future "optional department"
+  field can't silently inherit required-ness.
+- **F3.2** (low): `ChallengeTodayClient.poolSize?: number` is
+  always sent by the server page; the `typeof poolSize === 'number'`
+  guard at `:132` is dead. Drop `?`.
+- **F3.3** (medium): `SpeechInput.label?: string` is optional but
+  unlabeled textareas read as "textarea" in SR (WCAG 3.3.2). Either
+  require it OR fall back to `aria-label={placeholder}`.
+- **F3.4** (info): `FortschrittCalendar.Day.title?` — correct
+  (future-days).
 
 ## Dimension 4 — `children` typing (score 9/10)
 

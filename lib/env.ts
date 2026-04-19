@@ -35,6 +35,13 @@ const schema = z
     VERCEL_ENV: z.string().optional(),
   })
   .superRefine((data, ctx) => {
+    // Build phase collects page data without actually serving traffic.
+    // Requiring prod-only secrets here would break `next build` in CI
+    // where those secrets aren't set. instrumentation.ts re-validates
+    // at actual server boot, which IS when we need the secrets.
+    const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build'
+    if (isBuildPhase) return
+
     if (
       data.NODE_ENV === 'production' &&
       data.ALLOW_TESTING_AUTH !== 'true' &&
