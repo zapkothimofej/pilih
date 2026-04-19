@@ -8,6 +8,7 @@ import { escapeXmlText } from '@/lib/utils/escape'
 import { rateLimitAsync, rateLimitHeaders } from '@/lib/utils/rate-limit'
 import { getCurrentDbUser } from '@/lib/utils/auth'
 import { assertSameOrigin } from '@/lib/utils/csrf'
+import { scrubString } from '@/lib/utils/log'
 import { env } from '@/lib/env'
 import { stripCodeFences, extractText, assertNotTruncated } from '@/lib/ai/llm'
 
@@ -152,9 +153,9 @@ Bewerte die 3 Use-Cases nach der Rubrik und gib JSON zurück:
               { role: 'user', content: baseUserMessage },
               {
                 role: 'user',
-                content: `Vorheriger Versuch schlug fehl: ${
+                content: `Vorheriger Versuch schlug fehl: ${scrubString(
                   lastError instanceof Error ? lastError.message : String(lastError)
-                }. Bitte valides JSON nach dem beschriebenen Schema zurückgeben.`,
+                ).slice(0, 300)}. Bitte valides JSON nach dem beschriebenen Schema zurückgeben.`,
               },
             ]
 

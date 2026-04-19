@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 
 import { escapeXmlText } from '@/lib/utils/escape'
-import { logError } from '@/lib/utils/log'
+import { logError, scrubString } from '@/lib/utils/log'
 import { env } from '@/lib/env'
 import { stripCodeFences, extractText, assertNotTruncated } from '@/lib/ai/llm'
 
@@ -102,6 +102,14 @@ function meanScore(d: z.infer<typeof rubricDimensionsSchema>): number {
   return Math.max(1, Math.min(10, Math.round(sum / 6)))
 }
 
+// Bounded + scrubbed error fragment safe to include in a follow-up
+// Anthropic turn. Zod's default error serializer includes the offending
+// value verbatim, which may echo user-provided PII.
+function safeErrorForModel(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err)
+  return scrubString(raw).slice(0, 300)
+}
+
 export async function judgePrompt(
   challengeDescription: string,
   userPrompt: string,
@@ -147,9 +155,14 @@ Bewerte den Prompt des Lernenden anhand der 6 Dimensionen der Rubrik und gib JSO
               { role: 'user', content: userMessage },
               {
                 role: 'user',
-                content: `Vorheriger Versuch schlug fehl: ${
-                  lastError instanceof Error ? lastError.message : String(lastError)
-                }. Bitte valides JSON im beschriebenen Schema zurückgeben.`,
+                // Scrub + truncate before feeding back to the model.
+                // Zod errors echo the failing value; a malformed
+                // user prompt that happened to contain an email or
+                // key-shape would otherwise be transmitted verbatim
+                // a second time to Anthropic.
+                content: `Vorheriger Versuch schlug fehl: ${safeErrorForModel(
+                  lastError
+                )}. Bitte valides JSON im beschriebenen Schema zurückgeben.`,
               },
             ]
 

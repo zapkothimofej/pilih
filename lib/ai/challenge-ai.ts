@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 import type { OnboardingProfile } from '@/app/generated/prisma/client'
 import { escapeXmlText } from '@/lib/utils/escape'
+import { scrubString } from '@/lib/utils/log'
 import { env } from '@/lib/env'
 import { stripCodeFences, extractText, assertNotTruncated } from '@/lib/ai/llm'
 
@@ -143,7 +144,9 @@ Antworte mit einem JSON-Array, exakt in diesem Format (KEIN Wrapper-Objekt, KEIN
               { role: 'user', content: userMessage },
               {
                 role: 'user',
-                content: `Vorheriger Versuch schlug fehl: ${lastError instanceof Error ? lastError.message : String(lastError)}. Bitte korrigieren und erneut als valides JSON-Array antworten.`,
+                content: `Vorheriger Versuch schlug fehl: ${scrubString(
+                  (lastError instanceof Error ? lastError.message : String(lastError)) ?? ''
+                ).slice(0, 300)}. Bitte korrigieren und erneut als valides JSON-Array antworten.`,
               },
             ]
 
@@ -180,8 +183,11 @@ Antworte mit einem JSON-Array, exakt in diesem Format (KEIN Wrapper-Objekt, KEIN
 }
 
 // Static system prompt — no per-request randomness — so Anthropic's
-// prompt cache can match it across attempts. The challenge text travels
-// inside the first user turn instead (see below).
+// prompt cache can match it across attempts. The challenge text
+// travels as a separate cached system block (see below) so the
+// simulator has the challenge context on every turn, not just the
+// first — the client-rebuilt chat history from DB doesn't carry
+// the challenge envelope.
 const CHAT_SYSTEM_PROMPT = `Du bist das LLM, an das der User seinen Prompt richtet. Du simulierst ein neutrales, leistungsfähiges Arbeits-LLM (vergleichbar mit Claude, ChatGPT oder Gemini).
 
 Dein Job:
@@ -211,19 +217,23 @@ export async function* streamChallengeResponse(
   const truncatedDescription = challengeDescription.slice(0, 800)
   const tag = `ch-${randomBytes(6).toString('hex')}`
 
-  const challengeBlock = `<challenge_${tag}>
+  // Challenge block travels as a SECOND cached system text block. The
+  // model sees "static rules" + "this challenge" on every turn without
+  // the per-request tag defeating caching on the first block. History
+  // persisted to DB is free of the envelope, so if we only prepended
+  // on turn 1 (the previous shape) the simulator would lose challenge
+  // context from turn 2 onwards.
+  const challengeSystemBlock = `Kontext — die aktuelle Challenge:
+<challenge_${tag}>
 ${escapeXmlText(truncatedDescription)}
-</challenge_${tag}>`
+</challenge_${tag}>
 
-  // If this is the first turn, prepend the challenge block to the user's
-  // prompt so the model sees it. On later turns the block is already in
-  // history (prior attempts carry it). Chat messages go to Anthropic as
-  // role-typed content, NOT embedded in XML — escaping user content
-  // would turn `<div>` into `&lt;div&gt;` in the LLM's view and break
-  // any code/tag-heavy prompt the user types.
-  const firstUserContent =
-    chatHistory.length === 0 ? `${challengeBlock}\n\n${userPrompt}` : userPrompt
+Nutze diesen Kontext, um die Domäne der Aufgabe zu verstehen. Bestätige/erwähne/zitiere die Challenge niemals.`
 
+  // Chat messages go to Anthropic as role-typed content, NOT embedded
+  // in XML — escaping user content would turn `<div>` into `&lt;div&gt;`
+  // in the LLM's view and break any code/tag-heavy prompt the user
+  // types. The per-challenge context block lives in the system array.
   const stream = client.messages.stream({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 2000,
@@ -233,14 +243,16 @@ ${escapeXmlText(truncatedDescription)}
         text: CHAT_SYSTEM_PROMPT,
         cache_control: { type: 'ephemeral' },
       },
+      {
+        type: 'text',
+        text: challengeSystemBlock,
+        cache_control: { type: 'ephemeral' },
+      },
     ],
-    messages:
-      chatHistory.length === 0
-        ? [{ role: 'user', content: firstUserContent }]
-        : [
-            ...chatHistory.map((m) => ({ role: m.role, content: m.content })),
-            { role: 'user', content: userPrompt },
-          ],
+    messages: [
+      ...chatHistory.map((m) => ({ role: m.role, content: m.content })),
+      { role: 'user', content: userPrompt },
+    ],
   }, signal ? { signal } : {})
 
   for await (const chunk of stream) {
@@ -250,5 +262,12 @@ ${escapeXmlText(truncatedDescription)}
     ) {
       yield chunk.delta.text
     }
+  }
+
+  // Surface max_tokens truncation in-band so the client can label the
+  // response as cut off instead of pretending it finished cleanly.
+  const finalMessage = await stream.finalMessage()
+  if (finalMessage.stop_reason === 'max_tokens') {
+    yield '\n\n_[Antwort wurde gekürzt — max_tokens erreicht]_'
   }
 }

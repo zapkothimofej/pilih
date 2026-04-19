@@ -1,14 +1,16 @@
 import type Anthropic from '@anthropic-ai/sdk'
 
 // Strip the one-or-two sets of ``` fences Claude sometimes wraps JSON
-// in despite being told not to. Tolerant of a leading language hint
-// and trailing whitespace; doesn't try to rescue truly malformed output.
+// in despite being told not to. Matches only a trailing fence at the
+// very end (anchored with $) so a fence that appears inside a string
+// value — e.g. a user echoing a triple-backtick into feedback — doesn't
+// get greedy-eaten down to the final closing fence.
 export function stripCodeFences(raw: string): string {
   const trimmed = raw.trim()
   if (!trimmed.startsWith('```')) return trimmed
   return trimmed
     .replace(/^```(?:json|jsonl|ts|js)?\s*/i, '')
-    .replace(/```[\s\S]*$/, '')
+    .replace(/\s*```\s*$/, '')
     .trim()
 }
 

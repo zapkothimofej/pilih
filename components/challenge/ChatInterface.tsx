@@ -13,8 +13,17 @@ import { SendIcon, BotIcon, CheckIcon, CloseIcon } from '@/components/ui/icons'
 import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
 
 type Message = { role: 'user' | 'assistant'; content: string }
+type JudgeDimensions = {
+  specificity: number
+  context: number
+  role: number
+  format: number
+  constraints: number
+  reasoning: number
+}
 type JudgeFeedback = {
   score: number
+  dimensions: JudgeDimensions
   feedback: string
   strengths: string[]
   improvements: string[]
@@ -156,6 +165,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
             | {
                 type: 'judge'
                 score: number
+                dimensions: JudgeDimensions
                 feedback: string
                 improvements: string[]
                 strengths: string[]
@@ -180,6 +190,7 @@ export default function ChatInterface({ challengeId, sessionId, previousAttempts
           } else if (data.type === 'judge') {
             const judgeData: JudgeInternal = {
               score: data.score,
+              dimensions: data.dimensions,
               feedback: data.feedback,
               strengths: data.strengths,
               improvements: data.improvements,

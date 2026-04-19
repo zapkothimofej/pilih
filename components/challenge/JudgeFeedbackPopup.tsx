@@ -6,12 +6,31 @@ import { useGSAP } from '@gsap/react'
 import { BotIcon, CloseIcon, CheckIcon, ArrowRightIcon } from '@/components/ui/icons'
 import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
 
+type JudgeDimensions = {
+  specificity: number
+  context: number
+  role: number
+  format: number
+  constraints: number
+  reasoning: number
+}
+
 type JudgeFeedback = {
   score: number
+  dimensions: JudgeDimensions
   feedback: string
   strengths: string[]
   improvements: string[]
   techniqueFocus: string
+}
+
+const DIMENSION_LABELS: Record<keyof JudgeDimensions, string> = {
+  specificity: 'Spezifität',
+  context: 'Kontext',
+  role: 'Rolle',
+  format: 'Format',
+  constraints: 'Constraints',
+  reasoning: 'Reasoning',
 }
 
 interface JudgeFeedbackPopupProps {
@@ -178,10 +197,14 @@ export default function JudgeFeedbackPopup({ feedback, onClose }: JudgeFeedbackP
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto max-h-60 px-5 py-4 space-y-4">
+            <div className="overflow-y-auto max-h-72 px-5 py-4 space-y-4">
               <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                 {feedback.feedback}
               </p>
+
+              {feedback.dimensions && (
+                <DimensionBars dimensions={feedback.dimensions} />
+              )}
 
               {feedback.techniqueFocus && feedback.techniqueFocus.trim().length > 0 && (
                 <div
@@ -275,6 +298,57 @@ function scoreColor(score: number) {
   if (score >= 7) return 'var(--accent)'
   if (score >= 5) return 'var(--warning)'
   return 'var(--error)'
+}
+
+function DimensionBars({ dimensions }: { dimensions: JudgeDimensions }) {
+  // Six mini bars so the learner sees WHERE they scored — previously
+  // the judge collapsed 11^6 combinations to a single integer and the
+  // detail was thrown away before reaching the UI.
+  const entries = (Object.entries(dimensions) as Array<[keyof JudgeDimensions, number]>)
+  return (
+    <div className="space-y-1.5" aria-label="Rubrik-Bewertung">
+      <div
+        className="text-[10px] font-bold uppercase tracking-widest"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        Rubrik
+      </div>
+      <div className="space-y-1">
+        {entries.map(([key, value]) => {
+          const pct = Math.max(0, Math.min(1, value / 10))
+          const color =
+            value >= 7 ? 'var(--success)' : value >= 4 ? 'var(--warning)' : 'var(--error)'
+          return (
+            <div key={key} className="flex items-center gap-2 text-xs">
+              <div className="w-20 shrink-0" style={{ color: 'var(--text-secondary)' }}>
+                {DIMENSION_LABELS[key]}
+              </div>
+              <div
+                className="flex-1 h-1.5 rounded-full overflow-hidden"
+                style={{ background: 'var(--border-default)' }}
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={10}
+                aria-valuenow={value}
+                aria-label={`${DIMENSION_LABELS[key]}: ${value} von 10`}
+              >
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: `${pct * 100}%`, background: color }}
+                />
+              </div>
+              <div
+                className="w-5 text-right tabular-nums"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {value}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 function ScoreRing({ score }: { score: number }) {
