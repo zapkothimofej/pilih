@@ -1,7 +1,11 @@
 'use client'
 
-import type { User, Booking } from '@/app/generated/prisma/client'
+import type { Booking, Tier } from '@/app/generated/prisma/client'
 import { CheckIcon } from '@/components/ui/icons'
+
+// DTO so the client never sees the full Prisma User row (clerkId
+// especially — external-system identity not needed here).
+type EinstellungenUser = { name: string; email: string; tier: Tier }
 
 // Prices shown as "X € zzgl. MwSt." — required by the German PAngV for
 // B2B pricing display. Adjust to "inkl. MwSt." once the pricing
@@ -27,7 +31,7 @@ const TIER_INFO = {
   },
 }
 
-export default function EinstellungenClient({ user, bookings }: { user: User; bookings: Booking[] }) {
+export default function EinstellungenClient({ user, bookings }: { user: EinstellungenUser; bookings: Booking[] }) {
   const tierInfo = TIER_INFO[user.tier]
 
   return (

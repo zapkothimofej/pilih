@@ -21,11 +21,23 @@ export default async function ChallengePage({
 
   if (!sessionId) redirect('/challenge/heute')
 
+  // CRITICAL: the session id comes from a URL query param, so we
+  // MUST check that the session belongs to the current user AND
+  // references this challenge before reading its attempts. Without
+  // the ownership check, an authenticated user who obtains any
+  // sessionId (guessed CUID, leaked log, shared link) could
+  // enumerate another user's prompts + LLM responses here.
   const session = await prisma.dailySession.findUnique({ where: { id: sessionId } })
   if (!session) redirect('/challenge/heute')
+  if (session.userId !== user.id || session.selectedChallengeId !== id) {
+    redirect('/challenge/heute')
+  }
 
   const attempts = await prisma.promptAttempt.findMany({
-    where: { sessionId },
+    // Scope by userId as defense-in-depth — even if a future refactor
+    // loosens the ownership branch above, the attempt read stays
+    // user-scoped.
+    where: { sessionId, userId: user.id },
     orderBy: { createdAt: 'asc' },
   })
 

@@ -12,5 +12,14 @@ export default async function EinstellungenPage() {
     orderBy: { scheduledAt: 'desc' },
   })
 
-  return <EinstellungenClient user={user} bookings={bookings} />
+  // Narrow RSC prop: client only reads name/email/tier. The full
+  // Prisma User row (incl. clerkId — external-system identity) used
+  // to serialise across the RSC boundary into the DOM payload. Now
+  // sent as a minimal projection.
+  return (
+    <EinstellungenClient
+      user={{ name: user.name, email: user.email, tier: user.tier }}
+      bookings={bookings}
+    />
+  )
 }
