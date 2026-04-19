@@ -7,6 +7,7 @@ import { BoltIcon } from '@/components/ui/icons'
 import { xpLevel } from '@/lib/progress/xp'
 import AnimatedNumber from '@/components/ui/animations/AnimatedNumber'
 import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
+import { formatInt } from '@/lib/utils/format'
 
 export default function XPBar({ xp }: { xp: number }) {
   const { level, xpToNext, progress } = xpLevel(xp)
@@ -85,7 +86,7 @@ export default function XPBar({ xp }: { xp: number }) {
       </div>
 
       <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-        {xpToNext} XP bis Level {level + 1}
+        {formatInt(xpToNext)} XP bis Level {level + 1}
       </div>
     </div>
   )

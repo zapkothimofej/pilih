@@ -5,6 +5,7 @@ import { gsap } from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { DocumentIcon, ShareIcon } from '@/components/ui/icons'
 import { useReducedMotion } from '@/components/ui/animations/useReducedMotion'
+import { formatScore } from '@/lib/utils/format'
 
 interface Props {
   userName: string
@@ -167,7 +168,7 @@ export default function CertificateCard({ userName, completedAt, avgScore, linke
           <div className="cert-stagger flex justify-center gap-10 text-center">
             <div>
               <div className="text-2xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-                {avgScore.toFixed(1)}/10
+                {formatScore(avgScore)}/10
               </div>
               <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                 {content.score}

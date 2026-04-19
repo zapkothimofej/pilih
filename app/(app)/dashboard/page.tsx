@@ -12,22 +12,42 @@ export default async function DashboardPage() {
   const user = await getCurrentDbUser()
   if (!user) redirect('/sign-in')
 
-  const onboarding = await prisma.onboardingProfile.findUnique({ where: { userId: user.id } })
+  const onboarding = await prisma.onboardingProfile.findUnique({
+    where: { userId: user.id },
+    select: { completedAt: true },
+  })
   if (!onboarding?.completedAt) redirect('/onboarding')
 
+  // Narrow select — we render only title/category/difficulty + dates
+  // for the "recent 3" strip. description/promptingTips on every row
+  // is wasted bandwidth.
   const sessions = await prisma.dailySession.findMany({
     where: { userId: user.id, status: 'COMPLETED' },
-    include: { selectedChallenge: true },
+    select: {
+      id: true,
+      dayNumber: true,
+      date: true,
+      xpEarned: true,
+      selectedChallenge: { select: { title: true, category: true, currentDifficulty: true } },
+    },
     orderBy: { date: 'desc' },
   })
 
   const completed = sessions.length
   const streak = calcStreak(sessions.map(s => ({ date: s.date })))
   const xp = totalXp(sessions)
+  // UTC-day comparison — a Berlin user who completes at 01:00 local
+  // stores the session at 00:00 UTC (previous day) and local-midnight
+  // compare used to say "no challenge today" while calcStreak (UTC)
+  // correctly counted it. Align both with a single source of truth.
+  const todayUTC = Date.UTC(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate()
+  )
   const hasChallengeToday = sessions.some(s => {
-    const d = new Date(s.date); d.setHours(0,0,0,0)
-    const today = new Date(); today.setHours(0,0,0,0)
-    return d.getTime() === today.getTime()
+    const d = new Date(s.date)
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) === todayUTC
   })
 
   return (

@@ -3,17 +3,29 @@ import { getCurrentDbUser } from '@/lib/utils/auth'
 import { prisma } from '@/lib/db/prisma'
 import { FlameIcon, BoltIcon, BotIcon } from '@/components/ui/icons'
 import { calcStreak, totalXp } from '@/lib/progress/xp'
+import { formatInt, formatScore, plural } from '@/lib/utils/format'
 import FortschrittCalendar from './FortschrittCalendar'
 
 export default async function FortschrittPage() {
   const user = await getCurrentDbUser()
   if (!user) redirect('/sign-in')
 
+  // Narrow select: we only need the fields the UI actually reads.
+  // Previously include: true pulled ~100 KB (full description +
+  // promptingTips + llmResponse + userPrompt per row × 21 rows).
   const sessions = await prisma.dailySession.findMany({
     where: { userId: user.id, status: 'COMPLETED' },
-    include: {
-      selectedChallenge: true,
-      attempts: { orderBy: { createdAt: 'desc' }, take: 1 },
+    select: {
+      id: true,
+      dayNumber: true,
+      date: true,
+      xpEarned: true,
+      selectedChallenge: { select: { title: true, category: true, currentDifficulty: true } },
+      attempts: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { judgeScore: true },
+      },
     },
     orderBy: { dayNumber: 'asc' },
   })
@@ -41,12 +53,13 @@ export default async function FortschrittPage() {
         </p>
       </div>
 
-      {/* Stats */}
+      {/* Stats — numbers run through formatInt / formatScore so German
+          thousands (1.234) and decimal commas (7,3) are consistent. */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { icon: <FlameIcon size={16} />, label: 'Streak', value: streak, unit: 'Tage' },
-          { icon: <BoltIcon size={16} />, label: 'XP', value: xp, unit: 'Punkte' },
-          { icon: <BotIcon size={16} />, label: 'Ø Score', value: avgScore ? avgScore.toFixed(1) : '—', unit: '/10' },
+          { icon: <FlameIcon size={16} />, label: 'Streak', value: formatInt(streak), unit: plural(streak, 'Tag', 'Tage') },
+          { icon: <BoltIcon size={16} />, label: 'XP', value: formatInt(xp), unit: 'Punkte' },
+          { icon: <BotIcon size={16} />, label: 'Ø Score', value: avgScore ? formatScore(avgScore) : '—', unit: '/10' },
         ].map(stat => (
           <div
             key={stat.label}
