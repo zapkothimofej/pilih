@@ -111,6 +111,9 @@ export async function POST(
     userPrompt,
     judgeAbort.signal
   ).catch((err) => {
+    // Abort the judge when the Haiku stream itself blows up — stops
+    // paying for tokens no one will consume.
+    judgeAbort.abort()
     logError('attempt', 'judge failed in parallel', err)
     throw err
   })
@@ -118,10 +121,29 @@ export async function POST(
   // caller aborts mid-flight) doesn't trigger node's unhandledRejection.
   judgePromise.catch(() => {})
 
+  // `closed` protects against the controller.close/enqueue race. The
+  // abort listener used to call close() directly, which throws
+  // `TypeError: Invalid state` if the loop is mid-enqueue. Track the
+  // flag and guard all enqueue calls.
+  let closed = false
+  function safeEnqueue(payload: string): void {
+    if (closed) return
+    try {
+      // Controller may still be in an aborting state between the flag
+      // flipping and the next microtask — swallow the resulting throw.
+      // eslint-disable-next-line no-use-before-define
+      streamController?.enqueue(encoder.encode(payload))
+    } catch {
+      /* controller already closed by reader cancel */
+    }
+  }
+
+  let streamController: ReadableStreamDefaultController<Uint8Array> | null = null
   const stream = new ReadableStream({
     async start(controller) {
+      streamController = controller
       req.signal.addEventListener('abort', () => {
-        controller.close()
+        closed = true
       })
 
       try {
@@ -134,12 +156,17 @@ export async function POST(
         )) {
           if (req.signal.aborted) break
           fullResponse += chunk
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ type: 'chunk', text: chunk })}\n\n`)
-          )
+          safeEnqueue(`data: ${JSON.stringify({ type: 'chunk', text: chunk })}\n\n`)
         }
 
-        if (req.signal.aborted) return
+        // If the client disconnected but we already paid for Haiku AND
+        // judge, persist the attempt anyway so the user's progress
+        // isn't lost and we have a record for rate-limit/billing.
+        const clientGone = req.signal.aborted
+        if (clientGone && fullResponse.length === 0) {
+          // Nothing useful streamed — nothing worth persisting.
+          return
+        }
 
         // Judge wurde parallel gestartet — hier nur awaiten.
         const judgeFeedback = await judgePromise
@@ -178,18 +205,17 @@ export async function POST(
         }
 
         if (!attempt) {
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({
-                type: 'error',
-                status: 409,
-                message:
-                  'Versuch konnte wegen paralleler Anfragen nicht gespeichert werden. Bitte erneut versuchen.',
-                partialResponse: fullResponse.slice(0, 500),
-              })}\n\n`
-            )
+          safeEnqueue(
+            `data: ${JSON.stringify({
+              type: 'error',
+              status: 409,
+              message:
+                'Versuch konnte wegen paralleler Anfragen nicht gespeichert werden. Bitte erneut versuchen.',
+              partialResponse: fullResponse.slice(0, 500),
+            })}\n\n`
           )
-          controller.close()
+          closed = true
+          try { controller.close() } catch { /* already closed */ }
           logError('attempt', 'P2002 conflict after 3 retries', lastConflict)
           return
         }
@@ -200,32 +226,32 @@ export async function POST(
           judgeFeedback.score <= 4 ||
           (judgeFeedback.score >= 9 && attemptNumber >= 2)
 
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({
-              type: 'judge',
-              ...judgeFeedback,
-              shouldShowPopup,
-              attemptNumber,
-            })}\n\n`
-          )
+        safeEnqueue(
+          `data: ${JSON.stringify({
+            type: 'judge',
+            ...judgeFeedback,
+            shouldShowPopup,
+            attemptNumber,
+          })}\n\n`
         )
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
-        )
-        controller.close()
+        safeEnqueue(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
+        closed = true
+        try { controller.close() } catch { /* already closed */ }
       } catch (err) {
-        if (req.signal.aborted) return
+        if (req.signal.aborted) {
+          closed = true
+          try { controller.close() } catch { /* already closed */ }
+          return
+        }
         logError('attempt', 'stream error', err)
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({
-              type: 'error',
-              message: 'Verarbeitung fehlgeschlagen. Bitte erneut versuchen.',
-            })}\n\n`
-          )
+        safeEnqueue(
+          `data: ${JSON.stringify({
+            type: 'error',
+            message: 'Verarbeitung fehlgeschlagen. Bitte erneut versuchen.',
+          })}\n\n`
         )
-        controller.close()
+        closed = true
+        try { controller.close() } catch { /* already closed */ }
       }
     },
   })

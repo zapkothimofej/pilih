@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 
-import { Prisma } from '@/app/generated/prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { generateChallenges } from '@/lib/ai/challenge-ai'
 import { rateLimitAsync, rateLimitHeaders } from '@/lib/utils/rate-limit'
@@ -62,28 +61,29 @@ export async function POST(req: Request) {
     )
   }
 
-  try {
-    await prisma.challenge.createMany({
-      data: generated.map((c) => ({
-        userId: user.id,
-        dayNumber: c.dayNumber,
-        title: c.title,
-        description: c.description,
-        promptingTips: c.promptingTips,
-        category: c.category,
-        difficulty: c.difficulty,
-        currentDifficulty: c.difficulty,
-        status: 'UPCOMING',
-      })),
-      skipDuplicates: true,
-    })
-  } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-      const count = await prisma.challenge.count({ where: { userId: user.id } })
-      return NextResponse.json({ success: true, count, cached: true })
-    }
-    throw err
+  // skipDuplicates maps to ON CONFLICT DO NOTHING, so the P2002 path
+  // below is dead code — instead inspect the returned count.
+  // A concurrent generator that wrote the 21 rows first will cause
+  // createMany.count === 0, meaning "all rows already existed".
+  const result = await prisma.challenge.createMany({
+    data: generated.map((c) => ({
+      userId: user.id,
+      dayNumber: c.dayNumber,
+      title: c.title,
+      description: c.description,
+      promptingTips: c.promptingTips,
+      category: c.category,
+      difficulty: c.difficulty,
+      currentDifficulty: c.difficulty,
+      status: 'UPCOMING',
+    })),
+    skipDuplicates: true,
+  })
+
+  if (result.count === 0) {
+    const count = await prisma.challenge.count({ where: { userId: user.id } })
+    return NextResponse.json({ success: true, count, cached: true })
   }
 
-  return NextResponse.json({ success: true, count: generated.length })
+  return NextResponse.json({ success: true, count: result.count })
 }

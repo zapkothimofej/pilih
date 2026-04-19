@@ -30,9 +30,7 @@ export async function POST(
   }
   const { sessionId, difficultyRating } = body
 
-  const challenge = await prisma.challenge.findUnique({ where: { id: challengeId } })
-  if (!challenge) return NextResponse.json({ error: 'Challenge nicht gefunden' }, { status: 404 })
-
+  // Ownership / session-challenge match check before opening a tx.
   const session = await prisma.dailySession.findUnique({ where: { id: sessionId } })
   if (!session) return NextResponse.json({ error: 'Session nicht gefunden' }, { status: 404 })
   if (
@@ -42,18 +40,9 @@ export async function POST(
     return NextResponse.json({ error: 'Zugriff verweigert' }, { status: 403 })
   }
 
-  // Idempotenz: bereits abgeschlossen → persisted xpEarned zurückgeben
-  if (session.status === 'COMPLETED') {
-    const xp = session.xpEarned ?? 100 + (challenge.currentDifficulty - 1) * 20
-    return NextResponse.json({
-      success: true,
-      xp,
-      nextDifficulty: challenge.currentDifficulty,
-      avgScore: null,
-      alreadyCompleted: true,
-    })
-  }
-
+  // Pre-compute avgScore outside the tx — judgeScores on already-
+  // persisted attempts don't change during completion, so reading
+  // them under serializable would just hold the row locks longer.
   const attempts = await prisma.promptAttempt.findMany({
     where: { sessionId },
     select: { judgeScore: true },
@@ -63,48 +52,76 @@ export async function POST(
       ? null
       : attempts.reduce((sum, a) => sum + a.judgeScore, 0) / attempts.length
 
-  const nextDifficulty = getNextDifficultyWithScore(
-    challenge.currentDifficulty,
-    difficultyRating,
-    avgScore
-  )
-  // Relative delta so the generator's carefully balanced pool distribution is
-  // preserved. An absolute overwrite on every incomplete challenge would
-  // collapse the spread to a single value and break selectDailyChallenges.
-  const delta = nextDifficulty - challenge.currentDifficulty
+  // Everything that consumes currentDifficulty lives inside the tx so
+  // a concurrent adjacent abschluss can't drift the computation —
+  // re-read the Challenge row under the same tx, compute delta, and
+  // write all three mutations together.
+  let result: { xp: number; nextDifficulty: number; alreadyCompleted: boolean }
+  try {
+    result = await prisma.$transaction(async (tx) => {
+      const current = await tx.dailySession.findUnique({
+        where: { id: sessionId },
+        select: { status: true, xpEarned: true },
+      })
+      const challenge = await tx.challenge.findUnique({
+        where: { id: challengeId },
+        select: { currentDifficulty: true },
+      })
+      if (!challenge) throw new Error('CHALLENGE_NOT_FOUND')
 
-  const xp = 100 + (challenge.currentDifficulty - 1) * 20
+      if (current?.status === 'COMPLETED') {
+        const xp = current.xpEarned ?? 100 + (challenge.currentDifficulty - 1) * 20
+        return { xp, nextDifficulty: challenge.currentDifficulty, alreadyCompleted: true }
+      }
 
-  // Move completion check inside transaction to prevent double-completion race.
-  await prisma.$transaction(async (tx) => {
-    const current = await tx.dailySession.findUnique({
-      where: { id: sessionId },
-      select: { status: true },
-    })
-    if (current?.status === 'COMPLETED') return
-
-    await tx.dailySession.update({
-      where: { id: sessionId },
-      data: {
-        status: 'COMPLETED',
+      const nextDifficulty = getNextDifficultyWithScore(
+        challenge.currentDifficulty,
         difficultyRating,
-        completedAt: new Date(),
-        xpEarned: xp,
-      },
-    })
-    await tx.challenge.update({
-      where: { id: challengeId },
-      data: { status: 'COMPLETED', currentDifficulty: nextDifficulty },
-    })
-    if (delta !== 0) {
-      // Raw SQL because Prisma has no cross-row arithmetic + LEAST/GREATEST.
-      await tx.$executeRaw`
-        UPDATE "Challenge"
-        SET "currentDifficulty" = LEAST(5, GREATEST(1, "currentDifficulty" + ${delta}))
-        WHERE "userId" = ${user.id} AND "status" <> 'COMPLETED'::"ChallengeStatus"
-      `
-    }
-  })
+        avgScore
+      )
+      // Relative delta so the generator's carefully balanced pool
+      // distribution is preserved. An absolute overwrite on every
+      // incomplete challenge would collapse the spread to a single
+      // value and break selectDailyChallenges.
+      const delta = nextDifficulty - challenge.currentDifficulty
+      const xp = 100 + (challenge.currentDifficulty - 1) * 20
 
-  return NextResponse.json({ success: true, xp, nextDifficulty, avgScore })
+      await tx.dailySession.update({
+        where: { id: sessionId },
+        data: {
+          status: 'COMPLETED',
+          difficultyRating,
+          completedAt: new Date(),
+          xpEarned: xp,
+        },
+      })
+      await tx.challenge.update({
+        where: { id: challengeId },
+        data: { status: 'COMPLETED', currentDifficulty: nextDifficulty },
+      })
+      if (delta !== 0) {
+        // Raw SQL because Prisma has no cross-row arithmetic + LEAST/GREATEST.
+        await tx.$executeRaw`
+          UPDATE "Challenge"
+          SET "currentDifficulty" = LEAST(5, GREATEST(1, "currentDifficulty" + ${delta}))
+          WHERE "userId" = ${user.id} AND "status" <> 'COMPLETED'::"ChallengeStatus"
+        `
+      }
+
+      return { xp, nextDifficulty, alreadyCompleted: false }
+    })
+  } catch (err) {
+    if (err instanceof Error && err.message === 'CHALLENGE_NOT_FOUND') {
+      return NextResponse.json({ error: 'Challenge nicht gefunden' }, { status: 404 })
+    }
+    throw err
+  }
+
+  return NextResponse.json({
+    success: true,
+    xp: result.xp,
+    nextDifficulty: result.nextDifficulty,
+    avgScore,
+    ...(result.alreadyCompleted ? { alreadyCompleted: true } : {}),
+  })
 }

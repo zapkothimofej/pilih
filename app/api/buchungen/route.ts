@@ -61,15 +61,24 @@ export async function POST(req: Request) {
     )
   }
 
-  const booking = await prisma.booking.create({
-    data: {
-      userId: user.id,
-      type,
-      scheduledAt: scheduled,
-      meetingUrl: MEETING_URLS[type],
-      status: 'UPCOMING',
-    },
-  })
-
-  return NextResponse.json(booking, { status: 201 })
+  try {
+    const booking = await prisma.booking.create({
+      data: {
+        userId: user.id,
+        type,
+        scheduledAt: scheduled,
+        meetingUrl: MEETING_URLS[type],
+        status: 'UPCOMING',
+      },
+    })
+    return NextResponse.json(booking, { status: 201 })
+  } catch (err: unknown) {
+    if ((err as { code?: string })?.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'Du hast bereits eine Buchung dieser Art für diesen Zeitpunkt.' },
+        { status: 409 }
+      )
+    }
+    throw err
+  }
 }

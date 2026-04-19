@@ -102,8 +102,9 @@ export async function POST(req: Request) {
   const { useCase1, useCase2, useCase3 } = parsed.data
   const cases = [useCase1, useCase2, useCase3]
 
-  // Never overwrite an APPROVED record — protects the audit trail and prevents
-  // a retry/direct POST from flipping a valid certificate's source to REJECTED.
+  // Fast-path 409 when we already have an APPROVED row — the transaction
+  // below is the authoritative guard, this is just there to skip the
+  // LLM call and token spend when the answer is obvious.
   const existing = await prisma.finalSubmission.findUnique({ where: { userId: user.id } })
   if (existing?.status === 'APPROVED') {
     return NextResponse.json(
@@ -214,26 +215,49 @@ Bewerte die 3 Use-Cases nach der Rubrik und gib JSON zurück:
     passCount,
   })
 
-  const submission = await prisma.finalSubmission.upsert({
-    where: { userId: user.id },
-    update: {
-      useCase1,
-      useCase2,
-      useCase3,
-      llmReview,
-      status,
-      reviewedAt: new Date(),
-    },
-    create: {
-      userId: user.id,
-      useCase1,
-      useCase2,
-      useCase3,
-      llmReview,
-      status,
-      reviewedAt: new Date(),
-    },
-  })
+  // Transactional ratchet: re-read the row inside the tx and abort if
+  // it has flipped to APPROVED while the LLM was running (≥10 s
+  // window). Without this a user can race two submissions, or an
+  // admin approve in parallel, and the later write clobbers the
+  // earlier APPROVED state — losing the audit trail stored in
+  // llmReview.adminOverride.
+  let submission
+  try {
+    submission = await prisma.$transaction(async (tx) => {
+      const current = await tx.finalSubmission.findUnique({ where: { userId: user.id } })
+      if (current?.status === 'APPROVED') {
+        throw new Error('ALREADY_APPROVED')
+      }
+      return tx.finalSubmission.upsert({
+        where: { userId: user.id },
+        update: {
+          useCase1,
+          useCase2,
+          useCase3,
+          llmReview,
+          status,
+          reviewedAt: new Date(),
+        },
+        create: {
+          userId: user.id,
+          useCase1,
+          useCase2,
+          useCase3,
+          llmReview,
+          status,
+          reviewedAt: new Date(),
+        },
+      })
+    })
+  } catch (err) {
+    if (err instanceof Error && err.message === 'ALREADY_APPROVED') {
+      return NextResponse.json(
+        { error: 'Bereits bestanden — keine erneute Einreichung möglich.' },
+        { status: 409 }
+      )
+    }
+    throw err
+  }
 
   return NextResponse.json({
     success: true,

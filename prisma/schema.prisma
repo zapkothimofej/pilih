@@ -205,6 +205,12 @@ model Booking {
   status      BookingStatus @default(UPCOMING)
   createdAt   DateTime      @default(now())
 
+  // Prevents double-click duplicate bookings: a user can't have two
+  // bookings of the same type at the same instant. The app already
+  // enforces 60-min granularity via the datetime-local picker, so
+  // honest retries land on a different minute; malicious rapid-fire
+  // POSTs collide on this constraint.
+  @@unique([userId, scheduledAt, type])
   @@index([userId])
 }
 
