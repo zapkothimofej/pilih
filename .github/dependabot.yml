@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Grouped weekly npm updates — security advisories still land
+  # out-of-band as individual PRs. Keeps PR volume low while closing
+  # CVE windows quickly.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      runtime:
+        dependency-type: "production"
+      dev:
+        dependency-type: "development"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"

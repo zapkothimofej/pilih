@@ -100,6 +100,11 @@ export default function BuchungClient({ bookings: initialBookings }: Props) {
       return
     }
 
+    // Optimistic prepend keeps the new row visible instantly while
+    // the router.refresh() lands. setBookings(initialBookings) only
+    // seeds on mount, so without the prepend we'd wait a full RTT to
+    // see our own booking. The subsequent refresh re-seeds the list
+    // from the server on the NEXT mount — acceptable drift.
     const booking = await res.json() as Booking
     setBookings(prev => [booking, ...prev])
     setSuccess(true)
@@ -107,6 +112,8 @@ export default function BuchungClient({ bookings: initialBookings }: Props) {
     setScheduledAt('')
     setLoading(false)
     router.refresh()
+    // Clear success flag after the toast-equivalent banner duration.
+    setTimeout(() => setSuccess(false), 3000)
   }
 
   return (

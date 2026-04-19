@@ -23,7 +23,17 @@ export default function ChallengePageClient({ challenge, sessionId, dayNumber, p
   const reduced = useReducedMotion()
 
   function handleComplete(_rating: string, xp: number) {
-    setTimeout(() => router.push(`/dashboard?xp=${xp}`), 500)
+    // router.refresh() invalidates Next 16's dynamic RSC cache so the
+    // dashboard re-fetches the totals instead of serving a 30-s-stale
+    // XP count. Without it the user sees their pre-completion total
+    // for up to staleTimes.dynamic after completing a challenge.
+    // `_rating` is kept in the signature for API stability; the server
+    // already persisted the adaptive difficulty delta.
+    void _rating
+    setTimeout(() => {
+      router.push(`/dashboard?xp=${xp}`)
+      router.refresh()
+    }, 500)
   }
 
   useGSAP(

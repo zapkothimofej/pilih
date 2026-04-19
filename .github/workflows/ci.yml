@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Placeholders so `env()` parses — lib/env.ts validates shape, not reachability.
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      ANTHROPIC_API_KEY: "sk-ant-ci-placeholder-000000000000000000000000"
+      NODE_ENV: "test"
+      ALLOW_TESTING_AUTH: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+      - name: Audit (high+)
+        run: npm audit --audit-level=high --production

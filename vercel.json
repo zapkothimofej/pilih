@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "prisma migrate deploy && npm run build",
+  "functions": {
+    "app/api/zertifikat/pdf/route.tsx": { "maxDuration": 45 },
+    "app/api/challenges/generate/route.ts": { "maxDuration": 60 },
+    "app/api/challenges/[id]/attempt/route.ts": { "maxDuration": 60 },
+    "app/api/submission/route.ts": { "maxDuration": 60 }
+  }
+}
