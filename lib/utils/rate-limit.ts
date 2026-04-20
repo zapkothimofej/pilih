@@ -30,17 +30,30 @@ function memRateLimit(key: string, limit: number, windowMs: number): RateLimitRe
   const entry = memStore.get(key)
   if (!entry || now > entry.resetAt) {
     if (memStore.size >= MAX_STORE_SIZE) {
-      const oldest = memStore.keys().next().value
-      if (oldest) memStore.delete(oldest)
+      // LRU eviction: JS Map iterates in insertion order, so a FIFO
+      // `keys().next()` would let an attacker fill the store with 10k
+      // throw-away keys and evict a victim's still-hot bucket. Re-
+      // inserting on each touch below makes the eldest-iterated key
+      // the least-recently-used, so eviction now targets dormant
+      // traffic instead.
+      const lru = memStore.keys().next().value
+      if (lru) memStore.delete(lru)
     }
     const resetAt = now + windowMs
     memStore.set(key, { count: 1, resetAt })
     return { allowed: true, remaining: limit - 1, resetAt }
   }
   if (entry.count >= limit) {
+    // Refresh recency even on block so a stream of blocked requests
+    // from an active user doesn't age out of the store while they
+    // are still within their window.
+    memStore.delete(key)
+    memStore.set(key, entry)
     return { allowed: false, remaining: 0, resetAt: entry.resetAt }
   }
   entry.count++
+  memStore.delete(key)
+  memStore.set(key, entry)
   return { allowed: true, remaining: limit - entry.count, resetAt: entry.resetAt }
 }
 

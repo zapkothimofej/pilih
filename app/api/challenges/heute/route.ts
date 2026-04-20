@@ -3,9 +3,27 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
 import { selectDailyChallenges } from '@/lib/adaptive/difficulty'
 import { getCurrentDbUser } from '@/lib/utils/auth'
+import { rateLimit, rateLimitHeaders } from '@/lib/utils/rate-limit'
+
+const HEUTE_LIMIT = 60
+const HEUTE_WINDOW_MS = 60_000
+
 export async function GET() {
   const user = await getCurrentDbUser()
   if (!user) return NextResponse.json({ error: 'User nicht gefunden' }, { status: 404 })
+
+  // Per-user polling guard — the client re-fetches on nav, but a runaway
+  // loop or abusive poller would otherwise drive a DailySession+Challenge
+  // JOIN at full request rate. In-memory bucket is enough here: the query
+  // is per-user and lives on a single serverless instance for the
+  // duration of a hot path.
+  const limit = rateLimit(`heute:${user.id}`, HEUTE_LIMIT, HEUTE_WINDOW_MS)
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: 'Zu viele Anfragen. Bitte kurz warten.' },
+      { status: 429, headers: rateLimitHeaders(limit, HEUTE_LIMIT) }
+    )
+  }
 
   // Only the most recent completed session is needed to compute next day
   // and targetDifficulty — previously this route loaded every completed

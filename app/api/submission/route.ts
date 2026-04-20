@@ -132,8 +132,10 @@ export async function POST(req: Request) {
   }
 
   // Random nonce so the LLM can't be steered by an attacker closing
-  // </use_case> from within their own submission text.
-  const tag = `uc-${randomBytes(6).toString('hex')}`
+  // </use_case> from within their own submission text. 12 bytes (96
+  // bits) makes collisions across any realistic request volume
+  // effectively impossible.
+  const tag = `uc-${randomBytes(12).toString('hex')}`
   const userPayload = cases
     .map(
       (c, i) => `<use_case_${tag} index="${i + 1}">

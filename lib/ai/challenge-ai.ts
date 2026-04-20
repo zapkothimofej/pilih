@@ -144,9 +144,15 @@ Antworte mit einem JSON-Array, exakt in diesem Format (KEIN Wrapper-Objekt, KEIN
               { role: 'user', content: userMessage },
               {
                 role: 'user',
-                content: `Vorheriger Versuch schlug fehl: ${scrubString(
-                  (lastError instanceof Error ? lastError.message : String(lastError)) ?? ''
-                ).slice(0, 300)}. Bitte korrigieren und erneut als valides JSON-Array antworten.`,
+                // Scrub PII + strip control/invisible chars + neutralize
+                // XML-like sequences: Zod errors echo the failing value
+                // verbatim, so a malformed user-seeded input must not
+                // survive back into the model's context as steering.
+                content: `Vorheriger Versuch schlug fehl: ${escapeXmlText(
+                  scrubString(
+                    (lastError instanceof Error ? lastError.message : String(lastError)) ?? ''
+                  ).slice(0, 300)
+                )}. Bitte korrigieren und erneut als valides JSON-Array antworten.`,
               },
             ]
 

@@ -42,4 +42,18 @@ describe('scrubString', () => {
   it('passes through innocuous strings', () => {
     expect(scrubString('hello world 42')).toBe('hello world 42')
   })
+
+  it('redacts credit-card-shaped digit runs', () => {
+    expect(scrubString('card 4242 4242 4242 4242 on file')).toBe('card <cc> on file')
+    expect(scrubString('no-spaces 4000056655665556 rejected')).toBe('no-spaces <cc> rejected')
+  })
+
+  it('redacts IBAN-shaped tokens', () => {
+    expect(scrubString('IBAN DE89370400440532013000 saldo')).toBe('IBAN <iban> saldo')
+  })
+
+  it('redacts JWTs', () => {
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c3IifQ.5m7k1EzJ6mAbCdEfGhIjKl'
+    expect(scrubString(`auth=${jwt} tail`)).toBe('auth=<jwt> tail')
+  })
 })

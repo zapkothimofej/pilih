@@ -109,3 +109,6 @@ Touched: none
 
 ## [2026-04-18 23:59] session | round 7 review: component API surface
 Touched: wiki/component-api.md, wiki/index.md
+
+## [2026-04-20 16:40] session | review-cool all: 25 dims, 6 quick-win fixes
+Touched: none

@@ -14,9 +14,11 @@ export type { JudgeDimensions, JudgeFeedback } from '@/lib/ai/judge-types'
 import type { JudgeDimensions, JudgeFeedback } from '@/lib/ai/judge-types'
 
 // Per-request random envelope tag so a prompt-injection can't guess the
-// delimiter it would need to close to inject sibling XML.
+// delimiter it would need to close to inject sibling XML. 12 bytes (96
+// bits) makes a tag collision across any realistic request volume
+// effectively impossible without cost on the LLM input budget.
 function randomTag(): string {
-  return `eval-${randomBytes(6).toString('hex')}`
+  return `eval-${randomBytes(12).toString('hex')}`
 }
 
 // Full rubric so the 0-10 sub-scores become auditable and the final
@@ -89,10 +91,13 @@ function meanScore(d: z.infer<typeof rubricDimensionsSchema>): number {
 
 // Bounded + scrubbed error fragment safe to include in a follow-up
 // Anthropic turn. Zod's default error serializer includes the offending
-// value verbatim, which may echo user-provided PII.
+// value verbatim, which may echo user-provided PII. We also strip
+// control + invisible chars and neutralize XML-like sequences so a
+// crafted input can't use the retry path to re-inject steering
+// markup that the first turn escaped.
 function safeErrorForModel(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err)
-  return scrubString(raw).slice(0, 300)
+  return escapeXmlText(scrubString(raw).slice(0, 300))
 }
 
 // The raw Anthropic Message is attached to the returned payload so
